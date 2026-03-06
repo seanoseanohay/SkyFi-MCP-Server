@@ -1,0 +1,284 @@
+{
+  "productTypes": [
+    {
+      "resolutions": [
+        {
+          "resolution": "HIGH",
+          "isSupported": true,
+          "isComingSoon": false,
+          "pricing": {
+            "taskingMaxAoiSideKm": 22.47,
+            "taskingMinSqkm": 25.0,
+            "taskingMaxSqkm": 500.0,
+            "taskingPriceOneSqkm": 8.0,
+            "isPriorityEnabled": false,
+            "priorityTaskingPriceOneSqkm": 4.0
+          },
+          "providers": {
+            "SATELLOGIC": {
+              "taskingMaxAoiSideKm": 22.47,
+              "taskingMinSqkm": 33.0,
+              "taskingMaxSqkm": 500.0,
+              "taskingPriceOneSqkm": 8.0,
+              "isPriorityEnabled": false,
+              "priorityTaskingPriceOneSqkm": 4.0,
+              "provider": "SATELLOGIC",
+              "providerOperational": true
+            },
+            "GEOSAT": {
+              "taskingMaxAoiSideKm": 15.41,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 234.1,
+              "taskingPriceOneSqkm": 8.0,
+              "isPriorityEnabled": false,
+              "priorityTaskingPriceOneSqkm": 8.0,
+              "provider": "GEOSAT",
+              "providerOperational": true
+            }
+          }
+        },
+        {
+          "resolution": "VERY HIGH",
+          "isSupported": true,
+          "isComingSoon": false,
+          "pricing": {
+            "taskingMaxAoiSideKm": 44.83,
+            "taskingMinSqkm": 25.0,
+            "taskingMaxSqkm": 2000.0,
+            "taskingPriceOneSqkm": 12.0,
+            "isPriorityEnabled": true,
+            "priorityTaskingPriceOneSqkm": 12.0
+          },
+          "providers": {
+            "SIWEI": {
+              "taskingMaxAoiSideKm": 12.86,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 162.6,
+              "taskingPriceOneSqkm": 12.0,
+              "isPriorityEnabled": true,
+              "priorityTaskingPriceOneSqkm": 12.0,
+              "provider": "SIWEI",
+              "providerOperational": true
+            },
+            "PLANET": {
+              "taskingMaxAoiSideKm": 12.86,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 162.6,
+              "taskingPriceOneSqkm": 12.0,
+              "isPriorityEnabled": false,
+              "priorityTaskingPriceOneSqkm": 12.0,
+              "provider": "PLANET",
+              "providerOperational": true
+            },
+            "IMPRO": {
+              "taskingMaxAoiSideKm": 44.83,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 2000.0,
+              "taskingPriceOneSqkm": 12.0,
+              "isPriorityEnabled": true,
+              "priorityTaskingPriceOneSqkm": 12.0,
+              "provider": "IMPRO",
+              "providerOperational": true
+            }
+          }
+        },
+        {
+          "resolution": "SUPER HIGH",
+          "isSupported": true,
+          "isComingSoon": false,
+          "pricing": {
+            "taskingMaxAoiSideKm": 31.73,
+            "taskingMinSqkm": 25.0,
+            "taskingMaxSqkm": 1000.0,
+            "taskingPriceOneSqkm": 30.0,
+            "isPriorityEnabled": true,
+            "priorityTaskingPriceOneSqkm": 25.0
+          },
+          "providers": {
+            "SIWEI": {
+              "taskingMaxAoiSideKm": 31.73,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 1000.0,
+              "taskingPriceOneSqkm": 30.0,
+              "isPriorityEnabled": true,
+              "priorityTaskingPriceOneSqkm": 25.0,
+              "provider": "SIWEI",
+              "providerOperational": true
+            }
+          }
+        }
+      ],
+      "productType": "DAY"
+    },
+    {
+      "resolutions": [
+        {
+          "resolution": "HIGH",
+          "isSupported": true,
+          "isComingSoon": false,
+          "pricing": {
+            "taskingMaxAoiSideKm": 5.14,
+            "taskingMinSqkm": 25.0,
+            "taskingMaxSqkm": 25.4,
+            "taskingPriceOneSqkm": 27.0,
+            "isPriorityEnabled": false,
+            "priorityTaskingPriceOneSqkm": 9.0
+          },
+          "providers": {
+            "UMBRA": {
+              "taskingMaxAoiSideKm": 5.14,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 25.4,
+              "taskingPriceOneSqkm": 27.0,
+              "isPriorityEnabled": false,
+              "priorityTaskingPriceOneSqkm": 9.0,
+              "provider": "UMBRA",
+              "providerOperational": true
+            }
+          }
+        },
+        {
+          "resolution": "VERY HIGH",
+          "isSupported": true,
+          "isComingSoon": false,
+          "pricing": {
+            "taskingMaxAoiSideKm": 5.14,
+            "taskingMinSqkm": 25.0,
+            "taskingMaxSqkm": 25.4,
+            "taskingPriceOneSqkm": 38.0,
+            "isPriorityEnabled": false,
+            "priorityTaskingPriceOneSqkm": 12.0
+          },
+          "providers": {
+            "UMBRA": {
+              "taskingMaxAoiSideKm": 5.14,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 25.4,
+              "taskingPriceOneSqkm": 38.0,
+              "isPriorityEnabled": false,
+              "priorityTaskingPriceOneSqkm": 12.0,
+              "provider": "UMBRA",
+              "providerOperational": true
+            }
+          }
+        },
+        {
+          "resolution": "SUPER HIGH",
+          "isSupported": true,
+          "isComingSoon": false,
+          "pricing": {
+            "taskingMaxAoiSideKm": 5.14,
+            "taskingMinSqkm": 25.0,
+            "taskingMaxSqkm": 25.4,
+            "taskingPriceOneSqkm": 70.0,
+            "isPriorityEnabled": false,
+            "priorityTaskingPriceOneSqkm": 14.0
+          },
+          "providers": {
+            "UMBRA": {
+              "taskingMaxAoiSideKm": 5.14,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 25.4,
+              "taskingPriceOneSqkm": 70.0,
+              "isPriorityEnabled": false,
+              "priorityTaskingPriceOneSqkm": 14.0,
+              "provider": "UMBRA",
+              "providerOperational": true
+            }
+          }
+        },
+        {
+          "resolution": "ULTRA HIGH",
+          "isSupported": true,
+          "isComingSoon": false,
+          "pricing": {
+            "taskingMaxAoiSideKm": 5.14,
+            "taskingMinSqkm": 25.0,
+            "taskingMaxSqkm": 25.4,
+            "taskingPriceOneSqkm": 130.0,
+            "isPriorityEnabled": false,
+            "priorityTaskingPriceOneSqkm": 36.0
+          },
+          "providers": {
+            "UMBRA": {
+              "taskingMaxAoiSideKm": 5.14,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 25.4,
+              "taskingPriceOneSqkm": 130.0,
+              "isPriorityEnabled": false,
+              "priorityTaskingPriceOneSqkm": 36.0,
+              "provider": "UMBRA",
+              "providerOperational": true
+            }
+          }
+        }
+      ],
+      "productType": "SAR"
+    },
+    {
+      "resolutions": [
+        {
+          "resolution": "VERY HIGH",
+          "isSupported": true,
+          "isComingSoon": false,
+          "pricing": {
+            "taskingMaxAoiSideKm": 10.3,
+            "taskingMinSqkm": 25.0,
+            "taskingMaxSqkm": 104.0,
+            "taskingPriceOneSqkm": 24.0,
+            "isPriorityEnabled": true,
+            "priorityTaskingPriceOneSqkm": 24.0
+          },
+          "providers": {
+            "SIWEI": {
+              "taskingMaxAoiSideKm": 10.3,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 104.0,
+              "taskingPriceOneSqkm": 24.0,
+              "isPriorityEnabled": true,
+              "priorityTaskingPriceOneSqkm": 24.0,
+              "provider": "SIWEI",
+              "providerOperational": true
+            },
+            "IMPRO": {
+              "taskingMaxAoiSideKm": 10.3,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 104.0,
+              "taskingPriceOneSqkm": 24.0,
+              "isPriorityEnabled": true,
+              "priorityTaskingPriceOneSqkm": 24.0,
+              "provider": "IMPRO",
+              "providerOperational": true
+            }
+          }
+        },
+        {
+          "resolution": "SUPER HIGH",
+          "isSupported": true,
+          "isComingSoon": false,
+          "pricing": {
+            "taskingMaxAoiSideKm": 31.73,
+            "taskingMinSqkm": 25.0,
+            "taskingMaxSqkm": 1000.0,
+            "taskingPriceOneSqkm": 60.0,
+            "isPriorityEnabled": true,
+            "priorityTaskingPriceOneSqkm": 50.0
+          },
+          "providers": {
+            "SIWEI": {
+              "taskingMaxAoiSideKm": 31.73,
+              "taskingMinSqkm": 25.0,
+              "taskingMaxSqkm": 1000.0,
+              "taskingPriceOneSqkm": 60.0,
+              "isPriorityEnabled": true,
+              "priorityTaskingPriceOneSqkm": 50.0,
+              "provider": "SIWEI",
+              "providerOperational": true
+            }
+          }
+        }
+      ],
+      "productType": "STEREO"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+# Virtual env and caches
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Env and secrets (use env_file at runtime)
+.env
+.env.*
+!.env.example
+
+# Project metadata / not needed in image
+memory-bank
+samples
+docs
+tests
+.git
+.gitignore
+.cursor
+*.md
+!README.md
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.*.yml

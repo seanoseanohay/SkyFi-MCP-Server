@@ -1,0 +1,65 @@
+"""
+MCP server entry point — SkyFi Remote MCP Server.
+Transport: Streamable HTTP (MCP 2025 spec) with SSE fallback.
+Tools are registered in Phase 2+; this module initializes the server.
+"""
+
+import os
+
+from mcp.server.fastmcp import FastMCP
+
+from src.config import get_logger, setup_logging
+from src.tools.calculate_aoi_price import calculate_aoi_price
+from src.tools.check_feasibility import check_feasibility
+from src.tools.confirm_image_order import confirm_image_order
+from src.tools.get_pass_prediction import get_pass_prediction
+from src.tools.poll_order_status import poll_order_status
+from src.tools.request_image_order import request_image_order
+from src.tools.search_imagery import search_imagery
+from src.tools.setup_aoi_monitoring import setup_aoi_monitoring
+
+setup_logging()
+logger = get_logger(__name__)
+
+# Host/port from env (MCP_HOST, MCP_PORT) — passed into FastMCP
+_host = os.environ.get("MCP_HOST", "0.0.0.0")
+_port = int(os.environ.get("MCP_PORT", "8000"))
+
+mcp = FastMCP(
+    "SkyFi Remote MCP Server",
+    json_response=True,
+    host=_host,
+    port=_port,
+)
+
+# Optional: stateless HTTP for production scaling (Phase 7)
+# mcp = FastMCP("SkyFi Remote MCP Server", json_response=True, stateless_http=True, host=_host, port=_port)
+
+
+@mcp.tool()
+def ping() -> str:
+    """Health check: returns 'pong' if the server is alive."""
+    return "pong"
+
+
+# Phase 2: core tools (thin handlers in src/tools/, logic in src/services/)
+mcp.tool()(search_imagery)
+mcp.tool()(calculate_aoi_price)
+# Phase 3: feasibility
+mcp.tool()(check_feasibility)
+mcp.tool()(get_pass_prediction)
+# Phase 4: ordering (HITL)
+mcp.tool()(request_image_order)
+mcp.tool()(confirm_image_order)
+mcp.tool()(poll_order_status)
+# Phase 5: monitoring
+mcp.tool()(setup_aoi_monitoring)
+
+
+def main() -> None:
+    logger.info("Starting SkyFi MCP server at http://%s:%s/mcp", _host, _port)
+    mcp.run(transport="streamable-http")
+
+
+if __name__ == "__main__":
+    main()
