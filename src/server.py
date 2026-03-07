@@ -2,16 +2,22 @@
 MCP server entry point — SkyFi Remote MCP Server.
 Transport: Streamable HTTP (MCP 2025 spec) with SSE fallback.
 Tools are registered in Phase 2+; this module initializes the server.
+Phase 5: POST /webhooks/skyfi receives SkyFi monitoring events; get_monitoring_events tool forwards them to agents.
 """
 
+import json
 import os
 
 from mcp.server.fastmcp import FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
 
 from src.config import get_logger, setup_logging
+from src.services import webhook_events
 from src.tools.calculate_aoi_price import calculate_aoi_price
 from src.tools.check_feasibility import check_feasibility
 from src.tools.confirm_image_order import confirm_image_order
+from src.tools.get_monitoring_events import get_monitoring_events
 from src.tools.get_pass_prediction import get_pass_prediction
 from src.tools.poll_order_status import poll_order_status
 from src.tools.request_image_order import request_image_order
@@ -54,6 +60,20 @@ mcp.tool()(confirm_image_order)
 mcp.tool()(poll_order_status)
 # Phase 5: monitoring
 mcp.tool()(setup_aoi_monitoring)
+mcp.tool()(get_monitoring_events)
+
+
+@mcp.custom_route("/webhooks/skyfi", methods=["POST"])
+async def skyfi_webhook(request: Request) -> Response:
+    """Receive SkyFi AOI monitoring events (POST from SkyFi). Store for agent polling via get_monitoring_events."""
+    try:
+        body = await request.body()
+        payload = json.loads(body.decode("utf-8")) if body else {}
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.warning("Webhook invalid JSON: %s", e)
+        return JSONResponse({"ok": False, "error": "Invalid JSON"}, status_code=400)
+    webhook_events.append_event(payload)
+    return JSONResponse({"ok": True}, status_code=200)
 
 
 def main() -> None:

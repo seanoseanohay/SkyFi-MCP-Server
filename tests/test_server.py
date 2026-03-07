@@ -1,8 +1,10 @@
-"""Tests for MCP server (tool registration)."""
+"""Tests for MCP server (tool registration and webhook route)."""
 
 import pytest
+from starlette.testclient import TestClient
 
 from src.server import mcp
+from src.services import webhook_events
 
 
 def test_ping_tool_registered() -> None:
@@ -59,3 +61,35 @@ def test_setup_aoi_monitoring_tool_registered() -> None:
     """Server exposes setup_aoi_monitoring tool (Phase 5)."""
     result = mcp._tool_manager._tools.get("setup_aoi_monitoring")
     assert result is not None
+
+
+def test_get_monitoring_events_tool_registered() -> None:
+    """Server exposes get_monitoring_events tool (Phase 5)."""
+    result = mcp._tool_manager._tools.get("get_monitoring_events")
+    assert result is not None
+
+
+def test_webhook_skyfi_accepts_post_and_stores_event() -> None:
+    """POST /webhooks/skyfi stores JSON body and returns 200."""
+    webhook_events.get_events(limit=100, clear_after=True)
+    app = mcp.streamable_http_app()
+    client = TestClient(app)
+    payload = {"subscriptionId": "sub-test", "eventType": "new_imagery"}
+    response = client.post("/webhooks/skyfi", json=payload)
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+    events = webhook_events.get_events(limit=1)
+    assert len(events) == 1
+    assert events[0]["payload"] == payload
+
+
+def test_webhook_skyfi_rejects_invalid_json() -> None:
+    """POST /webhooks/skyfi with invalid JSON returns 400."""
+    app = mcp.streamable_http_app()
+    client = TestClient(app)
+    response = client.post(
+        "/webhooks/skyfi",
+        content="not json",
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 400

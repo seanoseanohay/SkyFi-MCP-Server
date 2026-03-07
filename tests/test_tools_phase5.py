@@ -66,7 +66,7 @@ def test_setup_aoi_monitoring_uses_webhook_base_url_from_env_when_no_arg() -> No
     assert out["subscription_id"] == "mon-789"
     mock_client.post.assert_called_once()
     body = mock_client.post.call_args[1]["json"]
-    assert body["callbackUrl"] == "https://my-server.com/skyfi-events"
+    assert body["webhookUrl"] == "https://my-server.com/skyfi-events"
 
 
 def test_setup_aoi_monitoring_api_error_returns_error() -> None:

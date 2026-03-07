@@ -366,10 +366,10 @@ def test_notifications() -> None:
     url = f"{BASE_URL}/notifications"
     payload = {
         "aoi": TEST_WKT,
-        "callbackUrl": webhook_url,
+        "webhookUrl": webhook_url,
     }
     info(f"URL: {url}")
-    info(f"callbackUrl: {webhook_url[:50]}...")
+    info(f"webhookUrl: {webhook_url[:50]}...")
 
     try:
         resp = requests.post(url, json=payload, headers=headers(), timeout=30)

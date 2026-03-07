@@ -40,7 +40,7 @@ def test_setup_aoi_monitoring_success_returns_subscription_id() -> None:
     assert call_args[0][0] == "/notifications"
     body = call_args[1]["json"]
     assert body["aoi"] == WKT_SMALL
-    assert body["callbackUrl"] == "https://example.com/webhooks/skyfi"
+    assert body["webhookUrl"] == "https://example.com/webhooks/skyfi"
 
 
 def test_setup_aoi_monitoring_accepts_notification_id_in_response() -> None:

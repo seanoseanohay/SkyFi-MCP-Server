@@ -92,7 +92,7 @@ Phase 5 is only *really* validated when the SkyFi API accepts our `POST /notific
    - Get a one-off URL from [webhook.site](https://webhook.site) (or any public request catcher).
    - In `.env` set: `SKYFI_VALIDATION_WEBHOOK_URL=https://webhook.site/your-unique-id`
    - Run: `python phase0/validate_skyfi_api.py`  
-   - Check **Test 5 — POST /notifications**. Success = 2xx and (optionally) a subscription id; 4xx/422 means the API may expect a different body (we use `aoi` + `callbackUrl`).
+   - Check **Test 5 — POST /notifications**. Success = 2xx and (optionally) a subscription id; 4xx/422 means the API may expect a different body (we use `aoi` + `webhookUrl`).
 
 3. **End-to-end (MCP tool)**  
    With the server running and `SKYFI_WEBHOOK_BASE_URL` (or a per-call `webhook_url`) set, call the tool via your MCP client or:
@@ -102,3 +102,5 @@ Phase 5 is only *really* validated when the SkyFi API accepts our `POST /notific
      -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"setup_aoi_monitoring","arguments":{"aoi_wkt":"POLYGON((-122.42 37.77,-122.41 37.77,-122.41 37.78,-122.42 37.78,-122.42 37.77))","webhook_url":"https://webhook.site/your-id"}},"id":4}'
    ```
    A successful result includes `subscription_id` (or the API error in the tool response).
+
+**Webhook URL for SkyFi:** When registering AOI monitoring, SkyFi must be able to POST to your server. Use your public base URL + `/webhooks/skyfi`, e.g. `https://your-host:8000/webhooks/skyfi`. Events are stored in memory; agents receive them by calling the **get_monitoring_events** tool (optionally with `clear_after: true` to consume each event once).

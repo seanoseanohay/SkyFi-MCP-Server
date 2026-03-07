@@ -33,10 +33,10 @@ def setup_aoi_monitoring(
     if not webhook_url:
         return {"ok": False, "error": "webhook_url is required for AOI monitoring"}
 
-    # SkyFi platform API: typical body for notifications is geometry + callback URL
+    # SkyFi platform API expects webhookUrl (per API validation)
     body: dict[str, Any] = {
         "aoi": aoi_wkt,
-        "callbackUrl": webhook_url,
+        "webhookUrl": webhook_url,
     }
 
     try:
