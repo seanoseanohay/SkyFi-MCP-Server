@@ -113,6 +113,8 @@ class Settings:
 
     # AOI monitoring (Phase 5) — base URL for webhook callbacks (SkyFi POSTs events here)
     webhook_base_url: str = _str("SKYFI_WEBHOOK_BASE_URL", "").rstrip("/")
+    # Optional: same URL used by Phase 0 validation; setup_aoi_monitoring uses this if webhook_base_url is not set
+    validation_webhook_url: str = _str("SKYFI_VALIDATION_WEBHOOK_URL", "").rstrip("/")
     # Max monitoring events to retain in memory for agent polling (oldest dropped when full)
     monitoring_events_max: int = _int("MONITORING_EVENTS_MAX", 100)
 
