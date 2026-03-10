@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 from src.client.skyfi_client import SkyFiClient
+from src.services.notifications import clear_subscription_cache
 from src.tools.setup_aoi_monitoring import setup_aoi_monitoring
 
 WKT_SF = "POLYGON((-122.4194 37.7749, -122.4094 37.7749, -122.4094 37.7849, -122.4194 37.7849, -122.4194 37.7749))"
@@ -27,6 +28,7 @@ def test_setup_aoi_monitoring_requires_webhook_when_no_env() -> None:
 
 def test_setup_aoi_monitoring_success_with_webhook_url() -> None:
     """Valid AOI and webhook_url with mocked API returns subscription_id."""
+    clear_subscription_cache()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {"subscriptionId": "sub-abc"}
@@ -49,6 +51,7 @@ def test_setup_aoi_monitoring_success_with_webhook_url() -> None:
 
 def test_setup_aoi_monitoring_uses_webhook_base_url_from_env_when_no_arg() -> None:
     """When webhook_url is omitted but SKYFI_WEBHOOK_BASE_URL is set, uses it."""
+    clear_subscription_cache()
     mock_resp = MagicMock()
     mock_resp.status_code = 201
     mock_resp.json.return_value = {"id": "mon-789"}
@@ -73,6 +76,7 @@ def test_setup_aoi_monitoring_uses_webhook_base_url_from_env_when_no_arg() -> No
 
 def test_setup_aoi_monitoring_uses_validation_webhook_url_when_base_unset() -> None:
     """When webhook_url is omitted and SKYFI_WEBHOOK_BASE_URL is unset, uses SKYFI_VALIDATION_WEBHOOK_URL."""
+    clear_subscription_cache()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {"subscriptionId": "sub-from-validation-url"}
@@ -96,6 +100,7 @@ def test_setup_aoi_monitoring_uses_validation_webhook_url_when_base_unset() -> N
 
 def test_setup_aoi_monitoring_api_error_returns_error() -> None:
     """API failure returns error in tool response."""
+    clear_subscription_cache()
     with patch("src.tools.setup_aoi_monitoring.SkyFiClient") as mock_client_cls:
         mock_client = MagicMock(spec=SkyFiClient)
         mock_resp = MagicMock()

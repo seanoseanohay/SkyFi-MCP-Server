@@ -22,6 +22,7 @@ Implementation phases optimized for Cursor‑driven development.
 -   Implement SkyFi API client
 -   Initialize MCP server via `mcp-python-sdk`
 -   Implement logging and configuration system
+-   Build Docker image and docker-compose (standard way to run locally and in cloud)
 
 ## Phase 2 -- Core Tools (done)
 

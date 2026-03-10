@@ -1,14 +1,25 @@
 """
 Notifications service — POST /notifications for AOI monitoring.
 Registers an area of interest with SkyFi so they can POST events to our webhook.
+Deduplicates by AOI: exact key first (same shape), then coarse key (same neighborhood).
+See docs/design-aoi-subscription-dedup.md.
 """
 
 from typing import Any
 
 from src.client.skyfi_client import SkyFiClient, SkyFiClientError
 from src.config import get_logger
+from src.services import aoi as aoi_module
 
 logger = get_logger(__name__)
+
+# Subscription cache: keys are exact (normalize_aoi_key) and/or coarse (coarse_aoi_key). Value = {subscription_id, message}.
+_subscription_by_aoi: dict[str, dict[str, Any]] = {}
+
+
+def clear_subscription_cache() -> None:
+    """Clear the AOI subscription cache. Used in tests."""
+    _subscription_by_aoi.clear()
 
 
 def setup_aoi_monitoring(
@@ -19,6 +30,7 @@ def setup_aoi_monitoring(
     """
     Register AOI monitoring with SkyFi (POST /notifications).
     SkyFi will POST events to webhook_url when new imagery or events match the AOI.
+    If this AOI (same geometry) is already registered, returns the cached subscription without calling SkyFi.
 
     Args:
         client: SkyFi API client.
@@ -32,6 +44,32 @@ def setup_aoi_monitoring(
     webhook_url = (webhook_url or "").strip()
     if not webhook_url:
         return {"ok": False, "error": "webhook_url is required for AOI monitoring"}
+
+    exact_key = aoi_module.normalize_aoi_key(aoi_wkt)
+    coarse_key = aoi_module.coarse_aoi_key(aoi_wkt)
+
+    if exact_key is not None and exact_key in _subscription_by_aoi:
+        cached = _subscription_by_aoi[exact_key]
+        logger.info("AOI monitoring cache hit (exact) for key %s", exact_key[:16])
+        return {
+            "ok": True,
+            "subscription_id": cached.get("subscription_id"),
+            "message": cached.get(
+                "message",
+                "AOI monitoring already enabled for this area (shared subscription).",
+            ),
+        }
+    if coarse_key is not None and coarse_key in _subscription_by_aoi:
+        cached = _subscription_by_aoi[coarse_key]
+        logger.info("AOI monitoring cache hit (coarse) for key %s", coarse_key)
+        return {
+            "ok": True,
+            "subscription_id": cached.get("subscription_id"),
+            "message": cached.get(
+                "message",
+                "AOI monitoring already enabled for this area (shared subscription).",
+            ),
+        }
 
     # SkyFi platform API expects webhookUrl (per API validation)
     body: dict[str, Any] = {
@@ -65,8 +103,13 @@ def setup_aoi_monitoring(
     if subscription_id is not None:
         subscription_id = str(subscription_id)
 
-    return {
-        "ok": True,
-        "subscription_id": subscription_id,
-        "message": "AOI monitoring enabled. SkyFi will POST events to your webhook URL when new imagery or updates match this area.",
-    }
+    message = "AOI monitoring enabled. SkyFi will POST events to your webhook URL when new imagery or updates match this area."
+    result = {"ok": True, "subscription_id": subscription_id, "message": message}
+
+    entry = {"subscription_id": subscription_id, "message": message}
+    if exact_key is not None:
+        _subscription_by_aoi[exact_key] = entry
+    if coarse_key is not None:
+        _subscription_by_aoi[coarse_key] = entry
+
+    return result

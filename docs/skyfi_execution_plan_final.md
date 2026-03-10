@@ -11,6 +11,7 @@ Create repository structure
 Implement SkyFi API client
 Initialize MCP server using mcp-python-sdk
 Implement logging and configuration management
+Build Docker image and docker-compose (container is the standard way to run locally and in cloud)
 Phase 2 – Core MCP Tools
 Implement search_imagery tool
 Implement pagination handling

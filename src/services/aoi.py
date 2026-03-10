@@ -3,9 +3,11 @@ AOI (Area of Interest) validation for WKT polygons.
 Uses shapely; enforces vertex count and area limits from config.
 """
 
+import hashlib
 import math
 from typing import Any
 
+from shapely import normalize as shapely_normalize
 from shapely import wkt as shapely_wkt
 from shapely.geometry.base import BaseGeometry
 
@@ -85,6 +87,55 @@ def validate_aoi(wkt: str) -> dict[str, Any]:
         }
 
     return {"ok": True, "geometry": geom}
+
+
+def normalize_aoi_key(wkt: str) -> str | None:
+    """
+    Return a stable cache key for an AOI so that geometrically equal polygons
+    (e.g. same shape, different vertex order or whitespace) map to the same key.
+    Used to deduplicate SkyFi subscription calls: one subscription per unique AOI.
+
+    Returns:
+        A hex string key, or None if the WKT is invalid.
+    """
+    result = validate_aoi(wkt)
+    if not result.get("ok"):
+        return None
+    geom = result["geometry"]
+    canonical = shapely_normalize(geom)
+    return hashlib.sha256(canonical.wkb).hexdigest()
+
+
+def coarse_aoi_key(wkt: str, decimals: int | None = None) -> str | None:
+    """
+    Return a coarse spatial cache key from the AOI centroid rounded to N decimal places.
+    Polygons in the "same neighborhood" (same rounded centroid) map to the same key,
+    so we can deduplicate SkyFi subscriptions when many customers have slightly
+    different AOIs covering the same area. See docs/design-aoi-subscription-dedup.md.
+
+    Args:
+        wkt: WKT polygon (validated).
+        decimals: Number of decimal places for lon/lat (default from settings).
+                  ~3 ≈ 100 m; 2 ≈ 1 km.
+
+    Returns:
+        A string key like "lon_lat", or None if the WKT is invalid.
+    """
+    result = validate_aoi(wkt)
+    if not result.get("ok"):
+        return None
+    geom = result["geometry"]
+    try:
+        centroid = geom.centroid
+        if centroid.is_empty:
+            return None
+    except Exception:
+        return None
+    if decimals is None:
+        decimals = getattr(settings, "aoi_coarse_key_decimals", 3)
+    lon = round(centroid.x, decimals)
+    lat = round(centroid.y, decimals)
+    return f"{lon}_{lat}"
 
 
 def get_aoi_area_sqkm(wkt: str) -> dict[str, Any]:
