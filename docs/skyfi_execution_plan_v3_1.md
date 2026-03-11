@@ -49,6 +49,7 @@ Implementation phases optimized for Cursor‑driven development.
 -   Implement AOI monitoring tools
 -   Implement webhook handler
 -   Forward monitoring notifications to agents
+-   Enable agents to conversationally inform the user when new imagery is available (e.g. Pulse-style), via `get_monitoring_events` and host polling
 
 ## Phase 6 -- Observability
 
@@ -65,12 +66,7 @@ Implementation phases optimized for Cursor‑driven development.
 
 ## Phase 8 -- Open Source Readiness
 
--   Create LangGraph demo agent
--   Write integration docs for OpenAI / Claude / Gemini / LangChain
--   Finalize README and quickstart guide
--   Produce demo video or GIF
--   Include quickstart examples for each major provider:
-    -   Claude `mcp add`
-    -   OpenAI Responses API
-    -   Gemini MCP client
-    -   LangGraph agent binding
+-   **Claude Desktop as primary orchestrator.** Document and verify [Claude Desktop](https://docs.anthropic.com/en/docs/claude-code/mcp) as the main way to use this MCP: users run the MCP server and add it to Claude Desktop for conversational SkyFi (search, pricing, orders, AOI monitoring). No custom demo agent to build.
+-   Quickstart: how to add this MCP to Claude Desktop (config, `mcp add`, env); README and one-command run path.
+-   Optional: integration docs or pointers for OpenAI / Gemini / LangChain for users who prefer other hosts. If building a custom agent (e.g. LangGraph), use [LangSmith](https://smith.langchain.com) for observability.
+-   Produce demo video or GIF showing Claude Desktop + SkyFi MCP.

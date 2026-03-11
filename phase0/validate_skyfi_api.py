@@ -355,11 +355,9 @@ def test_pass_prediction() -> None:
 def test_notifications() -> None:
     """Validate POST /notifications (setup_aoi_monitoring). Requires a reachable webhook URL."""
     section("Test 5 — POST /notifications (Phase 5 AOI monitoring)")
-    webhook_url = os.environ.get("SKYFI_VALIDATION_WEBHOOK_URL", "").strip() or os.environ.get(
-        "SKYFI_WEBHOOK_BASE_URL", ""
-    ).strip().rstrip("/")
+    webhook_url = os.environ.get("SKYFI_WEBHOOK_BASE_URL", "").strip().rstrip("/")
     if not webhook_url:
-        info("SKIPPED — set SKYFI_VALIDATION_WEBHOOK_URL or SKYFI_WEBHOOK_BASE_URL to validate.")
+        info("SKIPPED — set SKYFI_WEBHOOK_BASE_URL to validate.")
         info("Use a public request catcher (e.g. https://webhook.site) to get a unique URL.")
         return
 

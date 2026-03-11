@@ -13,14 +13,14 @@ MCP server for the SkyFi satellite imagery platform. AI agents can search imager
 | 2 | ✅ Done | `search_imagery`, `calculate_aoi_price`, pagination, thumbnails |
 | 3 | ✅ Done | `check_feasibility`, `get_pass_prediction`, SAR suggestion |
 | 4 | ✅ Done | `request_image_order`, `confirm_image_order`, `poll_order_status` (HITL) |
-| **5** | **✅ Done** | **`setup_aoi_monitoring`** (POST /notifications); **POST /webhooks/skyfi** handler; **`get_monitoring_events`** to forward events to agents; webhook URL from **SKYFI_WEBHOOK_BASE_URL** or **SKYFI_VALIDATION_WEBHOOK_URL**. Subscription dedup: exact AOI + coarse spatial key (one per neighborhood) — **docs/design-aoi-subscription-dedup.md**. **TBD:** repeatable test that “customer POSTs to us → agent gets event” (see “Testing from the customer side” below). |
-| 6 | Next | Observability: caching, rate limiting, metrics |
-| 7 | Backlog | Testing & deployment (≥80% coverage, integration tests) |
+| **5** | **✅ Done** | **`setup_aoi_monitoring`** (POST /notifications); **POST /webhooks/skyfi** handler; **`get_monitoring_events`** to forward events to agents; webhook URL from **SKYFI_WEBHOOK_BASE_URL**. Subscription dedup: exact AOI + coarse spatial key (one per neighborhood) — **docs/design-aoi-subscription-dedup.md**. **TBD:** repeatable test that “customer POSTs to us → agent gets event” (see “Testing from the customer side” below). |
+| **6** | **✅ Done** | **Observability:** pricing cache (5 min TTL), pass-prediction cache (AOI + date window), **GET /metrics** (JSON counters). Inbound rate limit optional (RATE_LIMIT_PER_MINUTE; default 0 = off for self-hosted—see docs/observability.md). |
+| 7 | Next | Testing & deployment (≥80% coverage, integration tests) |
 | 8 | Backlog | Open source readiness (demos, provider docs) |
 
 **MCP tools:** `ping`, `search_imagery`, `calculate_aoi_price`, `check_feasibility`, `get_pass_prediction`, `request_image_order`, `confirm_image_order`, `poll_order_status`, `setup_aoi_monitoring`, `get_monitoring_events`.
 
-**Tests:** 104 tests (pytest). Phase 0 script validates live SkyFi API when `SKYFI_VALIDATION_WEBHOOK_URL` (or `SKYFI_WEBHOOK_BASE_URL`) is set.
+**Tests:** 109 tests (pytest). Phase 0 script validates live SkyFi API when `SKYFI_WEBHOOK_BASE_URL` is set.
 
 ---
 
@@ -45,7 +45,7 @@ docker compose up --build
 
 Same endpoint. Use `docker compose up --build` after code changes to reload (or rebuild the image for production).
 
-**Local use with AOI monitoring (webhooks):** We want one-command local use: you set `X_SKYFI_API_KEY` in `.env`, run `docker compose up`, and the webhook URL for SkyFi is set automatically so `setup_aoi_monitoring` works without manual tunnel setup. That “it just works” flow is planned (tunnel in the stack). Until then, use a tunnel (e.g. ngrok, cloudflared) and set `SKYFI_WEBHOOK_BASE_URL` in `.env`. See **docs/webhook-setup.md** for local vs cloud paths and the planned Docker experience.
+**Local use with AOI monitoring (webhooks):** We want one-command local use: you set `X_SKYFI_API_KEY` in `.env`, run `docker compose up`, and the webhook URL for SkyFi is set automatically so `setup_aoi_monitoring` works without manual tunnel setup. That “it just works” flow is planned (tunnel in the stack). Until then, use a **Cloudflare tunnel (cloudflared)** and set `SKYFI_WEBHOOK_BASE_URL` in `.env`. See **docs/webhook-setup.md** for why we use Cloudflare and for local vs cloud paths.
 
 ### Verify it's working (Streamable HTTP uses sessions)
 
@@ -110,12 +110,12 @@ Phase 5 is only *really* validated when the SkyFi API accepts our `POST /notific
 2. **Real API (Phase 0 script)**  
    Run the Phase 0 validation script with a webhook URL so it hits SkyFi’s live `/notifications` endpoint:
    - Get a one-off URL from [webhook.site](https://webhook.site) (or any public request catcher).
-   - In `.env` set: `SKYFI_VALIDATION_WEBHOOK_URL=https://webhook.site/your-unique-id`
+   - In `.env` set: `SKYFI_WEBHOOK_BASE_URL=https://webhook.site/your-unique-id` (or your Cloudflare tunnel URL + `/webhooks/skyfi`)
    - Run: `python phase0/validate_skyfi_api.py`  
    - Check **Test 5 — POST /notifications**. Success = 2xx and (optionally) a subscription id; 4xx/422 means the API may expect a different body (we use `aoi` + `webhookUrl`).
 
 3. **End-to-end (MCP tool)**  
-   With the server running, set `SKYFI_WEBHOOK_BASE_URL` or `SKYFI_VALIDATION_WEBHOOK_URL` (or pass `webhook_url` per call). Then call the tool via your MCP client or:
+   With the server running, set `SKYFI_WEBHOOK_BASE_URL` (or pass `webhook_url` per call). Then call the tool via your MCP client or:
    ```bash
    # After initialize + mcp-session-id (see above)
    curl -s -X POST http://localhost:8000/mcp -H "Content-Type: application/json" -H "Accept: application/json" -H "mcp-session-id: YOUR_SESSION_ID" \
@@ -123,7 +123,7 @@ Phase 5 is only *really* validated when the SkyFi API accepts our `POST /notific
    ```
    A successful result includes `subscription_id`. SkyFi will POST to your webhook when new archive imagery matches the AOI; agents get those events via **get_monitoring_events** (use `clear_after: true` to consume once).
 
-**Webhook URL for SkyFi:** Use a **public** URL that reaches this server, e.g. `https://<your-host>/webhooks/skyfi`. For local dev, run a tunnel (ngrok, cloudflared) to port 8000 and set that URL in `.env`. For cloud deployment, set your app’s public URL. See **docs/webhook-setup.md** for the two paths (local “it just works” with Docker vs cloud) and planned one-command local experience.
+**Webhook URL for SkyFi:** Use a **public** URL that reaches this server, e.g. `https://<your-host>/webhooks/skyfi`. For local dev, run a **Cloudflare tunnel (cloudflared)** to port 8000 and set that URL in `.env`. For cloud deployment, set your app’s public URL. See **docs/webhook-setup.md** for why we use Cloudflare and for the two paths (local vs cloud).
 
 ---
 
@@ -146,8 +146,8 @@ We still need a clear way to verify the **customer → us** path: SkyFi (or a si
    ```
    If the tool returns one event with that payload, the “customer → us → agent” path works. A small script could automate (1) + (2) and assert on the result for a regression test.
 
-2. **Real SkyFi:**  
-   Point a subscription at our public URL (tunnel or deployed server). When SkyFi sends an event (new archive imagery for that AOI), it will hit `/webhooks/skyfi`; agents see it via `get_monitoring_events`. Timing depends on SkyFi; optionally ask them for a “test webhook” or sandbox event.
+2. **Real SkyFi (manual smoke test):**  
+   Register 20 global AOIs so at least one is likely to get new imagery soon. See **docs/manual-test-global-aois.md**. Run `docker compose exec mcp-server python /app/scripts/register_global_aois.py` after the server is up with a public webhook URL in `.env`. Leave the server running; when SkyFi POSTs, you’ll see it via `get_monitoring_events` or server logs.
 
 3. **TBD:**  
    - Scripted E2E test: curl POST to `/webhooks/skyfi` then (via TestClient or subprocess) call `get_monitoring_events` and assert event count/payload.  

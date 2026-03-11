@@ -3,6 +3,7 @@ MCP server entry point — SkyFi Remote MCP Server.
 Transport: Streamable HTTP (MCP 2025 spec) with SSE fallback.
 Tools are registered in Phase 2+; this module initializes the server.
 Phase 5: POST /webhooks/skyfi receives SkyFi monitoring events; get_monitoring_events tool forwards them to agents.
+Phase 6: GET /metrics for observability; rate-limiting middleware.
 """
 
 import json
@@ -13,6 +14,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from src.config import get_logger, setup_logging
+from src.services import metrics as metrics_module
 from src.services import webhook_events
 from src.tools.calculate_aoi_price import calculate_aoi_price
 from src.tools.check_feasibility import check_feasibility
@@ -76,9 +78,19 @@ async def skyfi_webhook(request: Request) -> Response:
     return JSONResponse({"ok": True}, status_code=200)
 
 
+@mcp.custom_route("/metrics", methods=["GET"])
+async def metrics(_request: Request) -> Response:
+    """Phase 6: return observability metrics (JSON)."""
+    return JSONResponse(metrics_module.get_metrics())
+
+
 def main() -> None:
     logger.info("Starting SkyFi MCP server at http://%s:%s/mcp", _host, _port)
-    mcp.run(transport="streamable-http")
+    app = mcp.streamable_http_app()
+    from src.middleware.rate_limit import RateLimitMiddleware
+    app.add_middleware(RateLimitMiddleware)
+    import uvicorn
+    uvicorn.run(app, host=_host, port=_port)
 
 
 if __name__ == "__main__":

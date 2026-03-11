@@ -86,8 +86,11 @@ Preview expiration enforced via TTL - Rate limiting protects SkyFi APIs
 -   **confirm_image_order** -- executes preview after confirmation
 -   **poll_order_status** -- GET `/orders/{id}`
 -   **setup_aoi_monitoring** -- POST `/notifications`
+-   **get_monitoring_events** -- return recent webhook events (SkyFi POSTs to our webhook when new imagery matches the AOI)
 -   **resolve_location_to_wkt** -- OSM Nominatim integration (Uses free
     Nominatim API; respect **1 request/sec rate limit** with caching)
+
+**AOI monitoring and conversational notification.** When SkyFi has new imagery for a monitored AOI, they POST to our webhook; the server stores events and exposes them via `get_monitoring_events`. The host or agent should poll this tool (e.g. at session start or on a schedule) so the agent can **conversationally inform the user** when new imagery is available---e.g. "We have new imagery for your AOI. Would you like to buy it?"---similar to an item in ChatGPT Pulse. The MCP server provides the data; the host is responsible for polling and surfacing it to the conversation.
 
 ## 9. Pagination Handling
 
@@ -130,3 +133,7 @@ Default configuration:
 -   AOI monitoring and webhooks functional
 -   ≥80% automated test coverage
 -   Server deployable locally and in cloud environments
+
+## 13. Orchestrator and AI integration (Phase 8)
+
+**Claude Desktop** is the primary orchestrator for this MCP. Users run the MCP server and add it to [Claude Desktop](https://docs.anthropic.com/en/docs/claude-code/mcp) to get conversational SkyFi (search, pricing, orders, AOI monitoring). Phase 8 focuses on documenting and verifying that path: quickstart for adding this MCP to Claude Desktop, README, and an optional demo video. No custom demo agent is required. For users who build a custom agent (e.g. LangGraph), use [LangSmith](https://smith.langchain.com) for observability.

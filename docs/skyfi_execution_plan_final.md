@@ -30,6 +30,7 @@ Phase 5 – Monitoring
 Implement AOI monitoring tools
 Implement webhook event handling
 Forward monitoring notifications to agents
+Enable agents to conversationally inform the user when new imagery is available (e.g. Pulse-style), via get_monitoring_events and host polling
 Phase 6 – Observability
 Add caching for pricing and pass prediction
 Implement rate limiting
@@ -39,3 +40,8 @@ Write unit tests for services
 Add integration tests for order workflows
 Verify webhook behavior
 Deploy locally and to cloud environment
+Phase 8 – Open Source Readiness
+Claude Desktop as primary orchestrator: document and verify adding this MCP to Claude Desktop for conversational SkyFi (no custom demo agent)
+Quickstart for adding this MCP to Claude Desktop (config, mcp add, env); README and one-command run
+Optional: integration pointers for OpenAI / Gemini / LangChain; use LangSmith when building a custom agent
+Produce demo video or GIF showing Claude Desktop + SkyFi MCP

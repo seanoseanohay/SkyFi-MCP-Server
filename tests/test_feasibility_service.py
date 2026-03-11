@@ -6,12 +6,16 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.client.skyfi_client import SkyFiClient
-from src.services.feasibility import get_pass_prediction as service_get_pass_prediction
-from src.services.feasibility import check_feasibility as service_check_feasibility
+from src.services.feasibility import (
+    check_feasibility as service_check_feasibility,
+    clear_pass_prediction_cache,
+    get_pass_prediction as service_get_pass_prediction,
+)
 
 
 def test_get_pass_prediction_returns_passes() -> None:
     """Successful pass-prediction response returns passes list."""
+    clear_pass_prediction_cache()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {
@@ -38,6 +42,7 @@ def test_get_pass_prediction_returns_passes() -> None:
 
 def test_get_pass_prediction_uses_predictions_key() -> None:
     """API response with 'predictions' key is normalized to passes."""
+    clear_pass_prediction_cache()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {"predictions": [{"passDate": "2026-03-09T12:00:00Z"}]}
@@ -59,6 +64,7 @@ def test_get_pass_prediction_uses_predictions_key() -> None:
 
 def test_get_pass_prediction_returns_error_on_422() -> None:
     """422 (e.g. window too soon) returns error."""
+    clear_pass_prediction_cache()
     mock_resp = MagicMock()
     mock_resp.status_code = 422
     mock_resp.text = "fromDate must be at least 24 hours from now"

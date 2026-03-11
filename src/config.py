@@ -93,8 +93,15 @@ class Settings:
         "SAR_SUGGESTION_CLOUD_THRESHOLD", 60
     )
 
-    # Rate limiting
-    rate_limit_per_minute: int = _int("RATE_LIMIT_PER_MINUTE", 100)
+    # Rate limiting (inbound: requests per client IP per minute).
+    # 0 = disabled (default for self-hosted). Set >0 when hosting for multiple clients.
+    rate_limit_per_minute: int = _int("RATE_LIMIT_PER_MINUTE", 0)
+
+    # Phase 6 – Observability: cache TTLs (seconds)
+    pricing_cache_ttl_seconds: int = _int("PRICING_CACHE_TTL_SECONDS", 300)
+    pass_prediction_cache_ttl_seconds: int = _int(
+        "PASS_PREDICTION_CACHE_TTL_SECONDS", 300
+    )
 
     # AOI validation
     aoi_max_vertices: int = _int("AOI_MAX_VERTICES", 500)
@@ -115,8 +122,6 @@ class Settings:
     webhook_base_url: str = _str("SKYFI_WEBHOOK_BASE_URL", "").rstrip("/")
     # Coarse spatial key: centroid rounded to this many decimals (~0.001° ≈ 100 m). Same neighborhood = one subscription.
     aoi_coarse_key_decimals: int = _int("AOI_COARSE_KEY_DECIMALS", 3)
-    # Optional: same URL used by Phase 0 validation; setup_aoi_monitoring uses this if webhook_base_url is not set
-    validation_webhook_url: str = _str("SKYFI_VALIDATION_WEBHOOK_URL", "").rstrip("/")
     # Max monitoring events to retain in memory for agent polling (oldest dropped when full)
     monitoring_events_max: int = _int("MONITORING_EVENTS_MAX", 100)
 

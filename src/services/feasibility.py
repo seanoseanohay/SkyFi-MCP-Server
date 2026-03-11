@@ -1,6 +1,7 @@
 """
 Feasibility service — POST /feasibility (with polling) and POST /feasibility/pass-prediction.
 Business logic for check_feasibility and get_pass_prediction; SAR suggestion when cloud >= threshold.
+Phase 6: pass-prediction results cached by (AOI key, from_date, to_date) with configurable TTL.
 """
 
 import time
@@ -8,8 +9,12 @@ from typing import Any
 
 from src.client.skyfi_client import SkyFiClient, SkyFiClientError
 from src.config import get_logger, settings
+from src.services import aoi as aoi_module
 
 logger = get_logger(__name__)
+
+# Pass-prediction cache: key = (aoi_key, from_date, to_date), value = (result, expiry_ts)
+_pass_prediction_cache: dict[tuple[str, str, str], tuple[dict[str, Any], float]] = {}
 
 # Status values that indicate polling is needed
 PENDING_STATUSES = frozenset({"pending", "processing", "in_progress", "running"})
@@ -58,6 +63,11 @@ def _add_sar_suggestion_to_feasibility(out: dict[str, Any], feasibility: dict[st
             out["sarSuggestion"] = suggestion
 
 
+def clear_pass_prediction_cache() -> None:
+    """Clear the pass-prediction cache. Used in tests."""
+    _pass_prediction_cache.clear()
+
+
 def get_pass_prediction(
     client: SkyFiClient,
     aoi_wkt: str,
@@ -68,10 +78,26 @@ def get_pass_prediction(
     """
     Call POST /feasibility/pass-prediction for the given AOI and date window.
     from_date/to_date must be >= 24h from now (API returns 422 otherwise).
-
-    Returns:
-        {"passes": [...], "error": None} or {"passes": None, "error": "message"}.
+    Results are cached by (AOI key, from_date, to_date) for PASS_PREDICTION_CACHE_TTL_SECONDS.
     """
+    ttl = settings.pass_prediction_cache_ttl_seconds
+    aoi_key = aoi_module.normalize_aoi_key(aoi_wkt)
+    now = time.monotonic()
+    cache_key = (aoi_key or "", from_date.strip(), to_date.strip())
+    if aoi_key is not None:
+        entry = _pass_prediction_cache.get(cache_key)
+        if entry is not None:
+            result, expiry = entry
+            if now < expiry:
+                logger.debug("Pass prediction cache hit for key %s", cache_key[0][:16])
+                try:
+                    from src.services import metrics as metrics_module
+                    metrics_module.inc_cache_hits("pass_prediction")
+                except Exception:
+                    pass
+                return result
+            del _pass_prediction_cache[cache_key]
+
     payload: dict[str, Any] = {
         "aoi": aoi_wkt,
         "openData": True,
@@ -92,7 +118,10 @@ def get_pass_prediction(
 
     data = resp.json()
     passes = data.get("passes") or data.get("predictions") or data.get("results") or []
-    return {"passes": passes, "error": None}
+    result = {"passes": passes, "error": None}
+    if aoi_key is not None:
+        _pass_prediction_cache[cache_key] = (result, now + ttl)
+    return result
 
 
 def check_feasibility(client: SkyFiClient, aoi_wkt: str) -> dict[str, Any]:

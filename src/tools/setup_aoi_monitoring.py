@@ -19,7 +19,7 @@ def setup_aoi_monitoring(
 
     Args:
         aoi_wkt: WKT polygon of the area to monitor (e.g. from resolve_location_to_wkt or a known polygon).
-        webhook_url: Full URL where SkyFi should send notification events. If omitted, uses SKYFI_WEBHOOK_BASE_URL or SKYFI_VALIDATION_WEBHOOK_URL from environment.
+        webhook_url: Full URL where SkyFi should send notification events. If omitted, uses SKYFI_WEBHOOK_BASE_URL from environment.
 
     Returns:
         Dict with subscription_id and message on success; error on failure.
@@ -32,16 +32,12 @@ def setup_aoi_monitoring(
             "error": validation.get("error", "Invalid AOI"),
         }
 
-    callback_url = (
-        (webhook_url or "").strip()
-        or (getattr(settings, "webhook_base_url", "") or "").strip()
-        or (getattr(settings, "validation_webhook_url", "") or "").strip()
-    )
+    callback_url = (webhook_url or "").strip() or (getattr(settings, "webhook_base_url", "") or "").strip()
     if not callback_url:
         return {
             "subscription_id": None,
             "message": None,
-            "error": "webhook_url is required. Pass webhook_url or set SKYFI_WEBHOOK_BASE_URL or SKYFI_VALIDATION_WEBHOOK_URL in the environment.",
+            "error": "webhook_url is required. Pass webhook_url or set SKYFI_WEBHOOK_BASE_URL in the environment.",
         }
 
     client = SkyFiClient()

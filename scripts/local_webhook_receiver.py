@@ -1,5 +1,5 @@
 # Run: python scripts/local_webhook_receiver.py
-# Then run ngrok http 8765 and use the ngrok URL as SKYFI_VALIDATION_WEBHOOK_URL
+# Then run a tunnel (e.g. cloudflared) to port 8765 and use that URL as SKYFI_WEBHOOK_BASE_URL
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 class Handler(BaseHTTPRequestHandler):

@@ -9,7 +9,7 @@ Use this to confirm that two different AOIs in the same “neighborhood” resul
 - [ ] **1.** Get a webhook URL (SkyFi will POST to it). E.g. open [webhook.site](https://webhook.site), copy your unique URL.
 - [ ] **2.** In project root, ensure `.env` has:
   - `X_SKYFI_API_KEY=<your-key>`
-  - Optional: `SKYFI_VALIDATION_WEBHOOK_URL=https://webhook.site/your-id`  
+  - Optional: `SKYFI_WEBHOOK_BASE_URL` (or pass `webhook_url` in the curl below)  
   If you don’t set the env var, you’ll pass `webhook_url` in the curl commands below.
 - [ ] **3.** Start the server (see Step 1 below) and leave it running.
 - [ ] **4.** In a **second** terminal, run the commands in Steps 2–4. After the second curl, check the **server** terminal for the log line `AOI monitoring cache hit (coarse)`.
@@ -44,7 +44,7 @@ SESSION=$(curl -s -D - -X POST http://localhost:8000/mcp \
   -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}' \
   | grep -i mcp-session-id | tr -d '\r' | cut -d' ' -f2)
 
-# If you did NOT set SKYFI_VALIDATION_WEBHOOK_URL or SKYFI_WEBHOOK_BASE_URL in .env, set a webhook URL here:
+# If you did NOT set SKYFI_WEBHOOK_BASE_URL in .env, set a webhook URL here:
 export WEBHOOK_URL="https://webhook.site/YOUR-UNIQUE-ID"
 # (Replace YOUR-UNIQUE-ID with the id from webhook.site. If you already set the env var in .env, you can skip this.)
 ```

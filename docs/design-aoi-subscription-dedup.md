@@ -55,7 +55,7 @@ You should see tests for `coarse_aoi_key` (same neighborhood → same key) and `
 
 ### 2. Manual test with the server (needs API key + webhook URL)
 
-1. **Start the server** (with `X_SKYFI_API_KEY` and `SKYFI_WEBHOOK_BASE_URL` or `SKYFI_VALIDATION_WEBHOOK_URL` in `.env`):
+1. **Start the server** (with `X_SKYFI_API_KEY` and `SKYFI_WEBHOOK_BASE_URL` in `.env`):
    ```bash
    .venv/bin/python -m src.server
    ```
