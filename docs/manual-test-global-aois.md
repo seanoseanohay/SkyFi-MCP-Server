@@ -10,6 +10,8 @@ This test confirms that **SkyFi’s backend actually POSTs to our webhook** when
 
 **Success:** We see at least one incoming webhook (in logs or via `get_monitoring_events`) from SkyFi.
 
+**After registration, we depend on SkyFi’s notification service.** We cannot trigger or speed up their webhook; we only receive a POST when they ingest new archive imagery that matches one of the 20 AOIs. Keep the server and tunnel running and wait.
+
 ## Prerequisites
 
 - **Public URL** for the MCP server so SkyFi can reach it:
@@ -68,10 +70,12 @@ You should see one log line per city (e.g. `SF: subscription_id=...`). Any failu
 
 ### 5. Wait and observe
 
-- **Logs:** Watch the server logs for incoming `POST /webhooks/skyfi` (or check your HTTP access logs).
-- **Events:** Call the MCP tool `get_monitoring_events` (e.g. via curl or your MCP client) periodically; when SkyFi sends an event, it will appear there.
+From here we depend entirely on **SkyFi’s notification service**. They will POST to our webhook only when they ingest new archive imagery that matches one of the 20 AOIs. We cannot trigger or speed that up.
 
-One webhook from SkyFi is enough to confirm the integration. Timing depends on when they ingest new archive over one of the 20 regions; it may take hours or a day.
+- **Logs:** Keep `docker compose logs -f mcp-server` (or equivalent) running. When SkyFi sends an event you’ll see a line like `"POST /webhooks/skyfi HTTP/1.1" 200`.
+- **Events:** Call the MCP tool `get_monitoring_events` (e.g. via curl or your MCP client) periodically; when SkyFi has sent an event, it will appear there.
+
+One webhook from SkyFi is enough to confirm the integration. Timing depends on their ingestion schedule; it may take hours or a day.
 
 ## AOIs used
 
@@ -81,4 +85,4 @@ The script registers small boxes (~2 km) around: SF, LA, NYC, Chicago, Houston, 
 
 - **Script says "webhook_url is required"** — Set `SKYFI_WEBHOOK_BASE_URL` in `.env` to the full URL including `/webhooks/skyfi`.
 - **Script says "X_SKYFI_API_KEY"** — Add your SkyFi API key to `.env`.
-- **No webhook received** — Ensure the server is reachable at the URL you gave SkyFi (tunnel running, firewall allows inbound). SkyFi may take time to send; keep the server and tunnel running.
+- **No webhook received** — After registration we depend on SkyFi’s notification service; they POST only when they have new imagery for an AOI. Ensure the server and tunnel are running and the URL in `.env` matches what you used when you ran the script. If you started the tunnel after registering, restart the server and run the script again so SkyFi has the correct URL.

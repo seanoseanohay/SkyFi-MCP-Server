@@ -134,6 +134,22 @@ Default configuration:
 -   ≥80% automated test coverage
 -   Server deployable locally and in cloud environments
 
-## 13. Orchestrator and AI integration (Phase 8)
+## 13. Integration documentation (Phase 8)
 
-**Claude Desktop** is the primary orchestrator for this MCP. Users run the MCP server and add it to [Claude Desktop](https://docs.anthropic.com/en/docs/claude-code/mcp) to get conversational SkyFi (search, pricing, orders, AOI monitoring). Phase 8 focuses on documenting and verifying that path: quickstart for adding this MCP to Claude Desktop, README, and an optional demo video. No custom demo agent is required. For users who build a custom agent (e.g. LangGraph), use [LangSmith](https://smith.langchain.com) for observability.
+The project must provide **comprehensive documentation** on how to use this MCP with each major agent framework and provider. Each integration must include setup, configuration, and a minimal example. Documented integrations:
+
+- **Google ADK** — [MCP tools](https://google.github.io/adk-docs/tools/mcp-tools/)
+- **LangChain / LangGraph** — [MCP agents](https://langchain-ai.github.io/langgraph/agents/mcp/)
+- **Vercel AI SDK** — [MCP cookbook](https://ai-sdk.dev/cookbook/node/mcp-tools)
+- **Claude Web / Anthropic Custom Integrations** — [Custom integrations](https://support.anthropic.com/en/articles/11175166-getting-started-with-custom-integrations-using-remote-mcp)
+- **OpenAI** (remote MCP / tools) — [OpenAI tools](https://platform.openai.com/docs/guides/tools-remote-mcp)
+- **Anthropic** (Claude Code MCP) — [Claude Code MCP](https://docs.anthropic.com/en/docs/claude-code/mcp)
+- **Google Gemini** (function calling / MCP) — [Gemini function calling](https://ai.google.dev/gemini-api/docs/function-calling)
+
+A single index (e.g. README or `docs/integrations.md`) must link to or summarize all of the above.
+
+## 14. Demo agent and open-source readiness (Phase 8)
+
+- **Demo agent:** Deliver a **custom demo agent** that uses this MCP. The demo is the primary way to show conversational SkyFi (search, feasibility, pricing, orders, AOI monitoring). Claude Desktop may be documented as one supported host; a dedicated demo agent is still required.
+- **Geospatial deep research:** The demo agent must demonstrate **geospatial-supported deep research** — iterative search, feasibility, pricing, order preview and confirmation, and AOI monitoring with notifications. The flow must be reproducible and documented.
+- **Open-source readiness:** The repository must be **polished and ready to be open-sourced**: README, LICENSE, contribution/security guidelines, comprehensive integration documentation (§13), and the demo agent. All deliverables must be suitable for public release.

@@ -41,7 +41,18 @@ Add integration tests for order workflows
 Verify webhook behavior
 Deploy locally and to cloud environment
 Phase 8 – Open Source Readiness
-Claude Desktop as primary orchestrator: document and verify adding this MCP to Claude Desktop for conversational SkyFi (no custom demo agent)
-Quickstart for adding this MCP to Claude Desktop (config, mcp add, env); README and one-command run
-Optional: integration pointers for OpenAI / Gemini / LangChain; use LangSmith when building a custom agent
-Produce demo video or GIF showing Claude Desktop + SkyFi MCP
+8.1 Integration documentation (comprehensive)
+Document how to use this MCP with Google ADK (setup, config, minimal example). Reference: https://google.github.io/adk-docs/tools/mcp-tools/
+Document how to use this MCP with LangChain / LangGraph (setup, config, minimal example). Reference: https://langchain-ai.github.io/langgraph/agents/mcp/
+Document how to use this MCP with Vercel AI SDK (setup, config, minimal example). Reference: https://ai-sdk.dev/cookbook/node/mcp-tools
+Document how to use this MCP with Claude Web / Anthropic Custom Integrations (setup, config, minimal example). Reference: https://support.anthropic.com/en/articles/11175166-getting-started-with-custom-integrations-using-remote-mcp
+Document how to use this MCP with OpenAI remote MCP / tools (setup, config, minimal example). Reference: https://platform.openai.com/docs/guides/tools-remote-mcp
+Document how to use this MCP with Anthropic Claude Code MCP (setup, config, minimal example). Reference: https://docs.anthropic.com/en/docs/claude-code/mcp
+Document how to use this MCP with Google Gemini function calling / MCP (setup, config, minimal example). Reference: https://ai.google.dev/gemini-api/docs/function-calling
+Provide a single index (e.g. README section or docs/integrations.md) linking to all provider-specific docs so users can find instructions for ADK, LangChain, AI SDK, Claude Web, OpenAI, Anthropic, and Gemini in one place.
+8.2 Demo agent (geospatial deep research)
+Build a custom demo agent that uses this MCP end-to-end.
+Focus the demo on geospatial-supported deep research: iterative search, feasibility, pricing, order preview and confirmation, and AOI monitoring with notifications. Document the flow and make it reproducible.
+Optionally produce a demo video or GIF showing the demo agent (or Claude Desktop + MCP) performing the full workflow.
+8.3 Open-source polish
+Polish the repository for public release: README, LICENSE, contribution/security guidelines, integration docs (8.1), and demo agent (8.2). Ensure the project is ready to be open-sourced.

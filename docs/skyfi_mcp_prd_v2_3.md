@@ -128,3 +128,17 @@ Pagination supported for all applicable tools.
 Monitoring and webhooks operational.
 ≥80% automated test coverage.
 Deployment works locally and in cloud.
+16. Integration Documentation (Comprehensive)
+The project must provide comprehensive documentation on how to use this MCP with each major agent framework and provider. Each integration must include setup steps, configuration (e.g. MCP server URL, auth), and a minimal working example. Documented integrations:
+Google ADK — https://google.github.io/adk-docs/tools/mcp-tools/
+LangChain / LangGraph — https://langchain-ai.github.io/langgraph/agents/mcp/
+Vercel AI SDK — https://ai-sdk.dev/cookbook/node/mcp-tools
+Claude Web / Anthropic Custom Integrations — https://support.anthropic.com/en/articles/11175166-getting-started-with-custom-integrations-using-remote-mcp
+OpenAI (remote MCP / tools) — https://platform.openai.com/docs/guides/tools-remote-mcp
+Anthropic (Claude Code MCP) — https://docs.anthropic.com/en/docs/claude-code/mcp
+Google Gemini (function calling / MCP) — https://ai.google.dev/gemini-api/docs/function-calling
+A single index (e.g. README or docs/integrations.md) must link to or summarize all of the above so users can find provider-specific instructions quickly.
+17. Demo Agent and Open-Source Readiness
+Demo agent: Deliver a custom demo agent that uses this MCP. The demo is the primary way to show conversational SkyFi (search, feasibility, pricing, orders, AOI monitoring). Claude Desktop may be documented as one supported host; a dedicated demo agent is still required.
+Geospatial deep research: The demo agent must demonstrate geospatial-supported deep research — e.g. iterative search over areas, feasibility checks, pricing comparison, order preview and confirmation, and AOI monitoring with notification. The flow should be reproducible and documented.
+Open-source readiness: The repository must be polished and ready to be open-sourced: clear README, LICENSE, contribution/security guidelines, comprehensive integration documentation (see §16), and the demo agent (see above). All deliverables must be in a state suitable for public release.

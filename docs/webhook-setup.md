@@ -87,6 +87,8 @@ When you deploy the MCP server to a public host (e.g. Fly, Railway, your own VM)
 
 If not set, `setup_aoi_monitoring` will error and ask for a webhook URL (or for this env var to be set). See README “Verifying Phase 5” and the tool’s error message.
 
+After subscriptions are registered, **delivery depends on SkyFi’s notification service.** They POST to your URL only when they ingest new archive imagery that matches a subscribed AOI. We cannot trigger or speed that up; keep the server and tunnel running and wait.
+
 ---
 
 ## Summary

@@ -13,7 +13,7 @@ MCP server for the SkyFi satellite imagery platform. AI agents can search imager
 | 2 | ✅ Done | `search_imagery`, `calculate_aoi_price`, pagination, thumbnails |
 | 3 | ✅ Done | `check_feasibility`, `get_pass_prediction`, SAR suggestion |
 | 4 | ✅ Done | `request_image_order`, `confirm_image_order`, `poll_order_status` (HITL) |
-| **5** | **✅ Done** | **`setup_aoi_monitoring`** (POST /notifications); **POST /webhooks/skyfi** handler; **`get_monitoring_events`** to forward events to agents; webhook URL from **SKYFI_WEBHOOK_BASE_URL**. Subscription dedup: exact AOI + coarse spatial key (one per neighborhood) — **docs/design-aoi-subscription-dedup.md**. **TBD:** repeatable test that “customer POSTs to us → agent gets event” (see “Testing from the customer side” below). |
+| **5** | **✅ Done** | **`setup_aoi_monitoring`** (POST /notifications); **POST /webhooks/skyfi** handler; **`get_monitoring_events`** to forward events to agents; webhook URL from **SKYFI_WEBHOOK_BASE_URL**. Subscription dedup: exact AOI + coarse spatial key — **docs/design-aoi-subscription-dedup.md**. **Only remaining item:** receive a real callback from SkyFi when they have new imagery. **For demo:** we mock the callback with **`scripts/mock_skyfi_webhook.sh`** (see "Testing from the customer side" below). |
 | **6** | **✅ Done** | **Observability:** pricing cache (5 min TTL), pass-prediction cache (AOI + date window), **GET /metrics** (JSON counters). Inbound rate limit optional (RATE_LIMIT_PER_MINUTE; default 0 = off for self-hosted—see docs/observability.md). |
 | 7 | Next | Testing & deployment (≥80% coverage, integration tests) |
 | 8 | Backlog | Open source readiness (demos, provider docs) |
@@ -128,6 +128,42 @@ Phase 5 is only *really* validated when the SkyFi API accepts our `POST /notific
 ---
 
 ## Testing from the customer side (inbound webhook)
+
+The **only** thing left for Phase 5 is receiving a **real** callback from SkyFi when they have new imagery for a registered AOI. Until then, we verify the path by mocking the callback.
+
+**For demo: mock SkyFi callback (recommended)**
+
+Run the script as if SkyFi were POSTing to our webhook. With the server running (local or Docker):
+
+```bash
+./scripts/mock_skyfi_webhook.sh
+```
+
+Optionally set `WEBHOOK_BASE_URL` (default `http://localhost:8000`):
+
+```bash
+WEBHOOK_BASE_URL=http://localhost:8000 ./scripts/mock_skyfi_webhook.sh
+```
+
+Then call **`get_monitoring_events`** via MCP (e.g. `tools/call` with `name: "get_monitoring_events"`, `arguments: {"limit": 10}`). You should see the mocked event. This is what we use in the demo.
+
+**Manual curl (same idea):**
+
+```bash
+# 1. Mock SkyFi sending an event
+curl -s -X POST http://localhost:8000/webhooks/skyfi \
+  -H "Content-Type: application/json" \
+  -d @scripts/mock_skyfi_webhook_payload.json
+
+# 2. Agent calls get_monitoring_events (via MCP tools/call) to read it
+```
+
+**Real SkyFi (when they send):**  
+Register AOIs via `setup_aoi_monitoring` with a public webhook URL (e.g. Cloudflare tunnel; see **docs/webhook-setup.md**). After that we depend on **SkyFi’s notification service**: they POST only when they ingest new imagery for an AOI; events appear in `get_monitoring_events`. See **docs/manual-test-global-aois.md** for registering many AOIs to increase the chance of a real event.
+
+---
+
+*The following older Options section is kept for reference; the mock script above is the preferred way to verify the path.*
 
 We still need a clear way to verify the **customer → us** path: SkyFi (or a simulator) POSTs to our webhook → we store the event → an agent gets it via `get_monitoring_events`.
 

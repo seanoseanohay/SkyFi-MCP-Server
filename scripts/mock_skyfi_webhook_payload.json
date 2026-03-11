@@ -1,0 +1,13 @@
+{
+  "subscriptionId": "demo-sub-001",
+  "eventType": "new_imagery",
+  "archiveId": "demo-archive-7c61f1c6-f747-4f8c-a09d-ab012757962a",
+  "captureTimestamp": "2025-12-09T14:07:56Z",
+  "cloudCoveragePercent": 0.0,
+  "footprint": "POLYGON((-119.77417 37.035851,-122.59977 37.433861,-122.326233 38.939869,-119.442474 38.544365,-119.77417 37.035851))",
+  "thumbnailUrls": {
+    "300x300": "https://thumbnails.skyfi.com/demo-thumb.png"
+  },
+  "provider": "SENTINEL1_CREODIAS",
+  "productType": "SAR"
+}
