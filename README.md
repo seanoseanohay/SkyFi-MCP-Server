@@ -15,8 +15,8 @@ MCP server for the SkyFi satellite imagery platform. AI agents can search imager
 | 4 | ✅ Done | `request_image_order`, `confirm_image_order`, `poll_order_status` (HITL) |
 | **5** | **✅ Done** | **`setup_aoi_monitoring`** (POST /notifications); **POST /webhooks/skyfi** handler; **`get_monitoring_events`** to forward events to agents; webhook URL from **SKYFI_WEBHOOK_BASE_URL**. Subscription dedup: exact AOI + coarse spatial key — **docs/design-aoi-subscription-dedup.md**. **Only remaining item:** receive a real callback from SkyFi when they have new imagery. **For demo:** we mock the callback with **`scripts/mock_skyfi_webhook.sh`** (see "Testing from the customer side" below). |
 | **6** | **✅ Done** | **Observability:** pricing cache (5 min TTL), pass-prediction cache (AOI + date window), **GET /metrics** (JSON counters). Inbound rate limit optional (RATE_LIMIT_PER_MINUTE; default 0 = off for self-hosted—see docs/observability.md). |
-| 7 | Next | Testing & deployment (≥80% coverage, integration tests) |
-| 8 | Backlog | Open source readiness (demos, provider docs) |
+| 7 | ✅ Done | Testing & deployment (≥80% coverage, integration tests). One item may be documented separately by maintainers. |
+| **8** | **Next** | **Open source readiness:** integration docs (ADK, LangChain, AI SDK, Claude Web, OpenAI, Anthropic, Gemini), demo agent (geospatial deep research), polish. See **[docs/integrations.md](docs/integrations.md)** (provider guides) and **docs/skyfi_execution_plan_final.md** Phase 8. |
 
 **MCP tools:** `ping`, `search_imagery`, `calculate_aoi_price`, `check_feasibility`, `get_pass_prediction`, `request_image_order`, `confirm_image_order`, `poll_order_status`, `setup_aoi_monitoring`, `get_monitoring_events`.
 

@@ -1,0 +1,34 @@
+# SkyFi MCP with Claude Web / Anthropic Custom Integrations
+
+Use the SkyFi MCP server from [Claude Web](https://support.anthropic.com/en/articles/11175166-getting-started-with-custom-integrations-using-remote-mcp) or other Anthropic custom integrations that support remote MCP over HTTP.
+
+## Setup
+
+1. **Run the SkyFi MCP server** at a URL reachable by the client:
+   - Local: `docker compose up --build` → `http://localhost:8000/mcp`
+   - For Claude Web / cloud clients: deploy the server and use a public URL, e.g. `https://your-host.example.com/mcp`
+
+2. **Server env:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` (see [.env.example](../../.env.example)).
+
+## Configuration
+
+In your Claude Web or custom integration setup, register the SkyFi MCP server as a **remote MCP** endpoint:
+
+- **MCP server URL:** `https://your-host.example.com/mcp` (or `http://localhost:8000/mcp` for local).
+- **Transport:** HTTP (Streamable HTTP). The client must send an `initialize` request first and then include the `mcp-session-id` response header on all subsequent requests (`tools/list`, `tools/call`).
+
+Anthropic’s docs describe how to add a remote MCP server URL in the custom integration UI or config; point that URL at the SkyFi server’s `/mcp` path.
+
+## Minimal example
+
+1. Deploy or run the SkyFi server and note the MCP URL.
+2. In Claude Web (or your custom integration), add the SkyFi MCP server using that URL.
+3. Start a conversation and ask Claude to use SkyFi tools, e.g. “Use the SkyFi tools to search for imagery over Nairobi” or “Check feasibility for this AOI.”
+
+The integration will perform `initialize` → `tools/list` → `tools/call` as needed. For image orders, the server returns a preview and only executes after human confirmation via `confirm_image_order`.
+
+## References
+
+- [Anthropic: Custom integrations and remote MCP](https://support.anthropic.com/en/articles/11175166-getting-started-with-custom-integrations-using-remote-mcp)
+- [SkyFi MCP README](../../README.md)
+- [Integrations index](../integrations.md)
