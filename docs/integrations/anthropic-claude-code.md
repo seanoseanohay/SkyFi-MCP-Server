@@ -35,25 +35,37 @@ For a deployed server, use that URL. Optional: `--scope user` (all projects) or 
 
 ### Claude Desktop
 
-Claude Desktop requires a `command` (and often `args`) per server. To connect to the SkyFi server via a remote proxy:
+Claude Desktop requires a `command` and `args` per server. Use **npx mcp-remote** with the **`--header`** flag to send your SkyFi API key so the server uses your credentials (required for deployed/shared servers; optional for local when the server has `X_SKYFI_API_KEY` in env).
+
+**Working config (recommended):**
 
 ```json
 {
   "mcpServers": {
     "skyfi": {
       "command": "npx",
-      "args": ["mcp-remote", "http://localhost:8000/mcp"]
+      "args": [
+        "mcp-remote",
+        "https://your-mcp-server.com/mcp",
+        "--header",
+        "X-Skyfi-Api-Key: YOUR_ACTUAL_KEY_HERE"
+      ]
     }
   }
 }
 ```
 
-Config location: macOS `~/Library/Application Support/Claude/claude_desktop_config.json`, or Settings → Developer → Edit Config. Restart Claude Desktop after changes. The SkyFi server speaks **Streamable HTTP** (session-based); the client sends `initialize`, then uses the `mcp-session-id` header on later requests.
+- Replace `https://your-mcp-server.com/mcp` with your server URL (local: `http://localhost:8000/mcp`; deployed: e.g. `https://keenermcp.com/mcp` or your Railway/public URL).
+- Replace `YOUR_ACTUAL_KEY_HERE` with your SkyFi API key (same value as `X_SKYFI_API_KEY` in `.env` when running the server locally). Do not commit the key to version control.
+
+**Local-only (no header):** If the server runs locally with `X_SKYFI_API_KEY` in `.env`, you can omit the header; the server will use the env key. For a deployed or shared server, always send the header so your key is used.
+
+Config location: macOS `~/Library/Application Support/Claude/claude_desktop_config.json`, or Settings → Developer → Edit Config. Restart Claude Desktop after changes. The SkyFi server uses **Streamable HTTP** (session-based): the client sends `initialize`, then uses the `mcp-session-id` header on later requests.
 
 ## Minimal example
 
-1. Start the server: `docker compose up --build`.
-2. In Claude Code: `claude mcp add --transport http skyfi http://localhost:8000/mcp` (or add the Claude Desktop config above and restart).
+1. Start the server: `docker compose up --build` (or use your deployed MCP URL).
+2. In Claude Desktop: add the `skyfi` entry to `claude_desktop_config.json` with `npx`, `mcp-remote`, your MCP URL, and `--header` `X-Skyfi-Api-Key: <your-key>` (see [Claude Desktop](#claude-desktop) above). Restart Claude Desktop.
 3. In a new conversation, ask Claude to use the SkyFi tools, e.g.:
    - "Call the SkyFi ping tool to check the server."
    - "Search for archive imagery over San Francisco in the last 30 days."

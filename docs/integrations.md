@@ -21,7 +21,7 @@ The SkyFi Remote MCP Server exposes satellite imagery capabilities as MCP tools.
    - **Deployed:** Use your server’s base URL, e.g. `https://your-host.example.com/mcp`.
 2. **Environment:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` (see [.env.example](../.env.example)). For webhooks (AOI monitoring), set `SKYFI_WEBHOOK_BASE_URL` to a public URL (see [webhook-setup.md](webhook-setup.md)).
 
-**Multi-user / shared deployment:** When the server is deployed for multiple users (e.g. behind Cloudflare), each client must send their SkyFi API key on every request. Configure your client to add the header **`X-Skyfi-Api-Key`** with your SkyFi API key. Optional: **`X-Skyfi-Api-Base-Url`** to override the API base URL. If the header is missing, the server falls back to the env var `X_SKYFI_API_KEY` (single-tenant).
+**Multi-user / shared deployment:** When the server is deployed for multiple users (e.g. behind Cloudflare), each client must send their SkyFi API key on every request. Configure your client to add the header **`X-Skyfi-Api-Key`** with your SkyFi API key. Optional: **`X-Skyfi-Api-Base-Url`** to override the API base URL. If the header is missing, the server falls back to the env var `X_SKYFI_API_KEY` (single-tenant). For Claude Desktop, see [anthropic-claude-code.md](integrations/anthropic-claude-code.md) for the exact `npx mcp-remote` + `--header` config.
 
 The server uses **Streamable HTTP** (MCP 2024–2025): clients send `initialize` first, then use the returned `mcp-session-id` header on subsequent requests. Provider-specific guides below assume the host handles this session flow.
 

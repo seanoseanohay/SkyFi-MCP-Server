@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 from src.client.skyfi_client import SkyFiClient, SkyFiClientError
 from src.services.notifications import (
     clear_subscription_cache,
+    list_aoi_monitors as service_list_aoi_monitors,
     setup_aoi_monitoring as service_setup_aoi_monitoring,
 )
 
@@ -141,3 +142,101 @@ def test_setup_aoi_monitoring_same_neighborhood_coarse_cache_second_call_does_no
     assert out1["ok"] is True and out2["ok"] is True
     assert out1["subscription_id"] == out2["subscription_id"] == "sub-neighborhood"
     client.post.assert_called_once()
+
+
+# --- list_aoi_monitors ---
+
+
+def test_list_aoi_monitors_success_returns_monitors() -> None:
+    """GET /notifications 200 with list returns ok and monitors."""
+    clear_subscription_cache()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "notifications": [
+            {"subscriptionId": "sub-1", "aoi": "POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))", "webhookUrl": "https://example.com/hook"},
+            {"id": "sub-2", "aoi": "POLYGON((2 2, 3 2, 3 3, 2 3, 2 2))"},
+        ],
+    }
+    mock_resp.text = "{}"
+    client = MagicMock(spec=SkyFiClient)
+    client.get.return_value = mock_resp
+
+    out = service_list_aoi_monitors(client)
+    assert out["ok"] is True
+    assert len(out["monitors"]) == 2
+    assert out["monitors"][0]["subscription_id"] == "sub-1"
+    assert "POLYGON" in (out["monitors"][0].get("aoi") or "")
+    assert out["monitors"][0].get("webhook_url") == "https://example.com/hook"
+    assert out["monitors"][1]["subscription_id"] == "sub-2"
+    client.get.assert_called_once_with("/notifications")
+
+
+def test_list_aoi_monitors_accepts_data_array() -> None:
+    """Response with data array (instead of notifications) is accepted."""
+    clear_subscription_cache()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "data": [{"notificationId": "n-1"}],
+    }
+    mock_resp.text = "{}"
+    client = MagicMock(spec=SkyFiClient)
+    client.get.return_value = mock_resp
+
+    out = service_list_aoi_monitors(client)
+    assert out["ok"] is True
+    assert len(out["monitors"]) == 1
+    assert out["monitors"][0]["subscription_id"] == "n-1"
+
+
+def test_list_aoi_monitors_404_fallback_to_cache() -> None:
+    """GET /notifications 404 returns local cache (unique subscriptions)."""
+    clear_subscription_cache()
+    # Populate cache via setup
+    mock_post = MagicMock()
+    mock_post.status_code = 200
+    mock_post.json.return_value = {"subscriptionId": "sub-cached"}
+    mock_post.text = "{}"
+    client = MagicMock(spec=SkyFiClient)
+    client.post.return_value = mock_post
+    service_setup_aoi_monitoring(client, WKT_SMALL, "https://example.com/hook")
+
+    mock_get = MagicMock()
+    mock_get.status_code = 404
+    mock_get.text = "Not Found"
+    client.get.return_value = mock_get
+
+    out = service_list_aoi_monitors(client)
+    assert out["ok"] is True
+    assert len(out["monitors"]) == 1
+    assert out["monitors"][0]["subscription_id"] == "sub-cached"
+    assert out["monitors"][0]["aoi"] is None
+    assert out["monitors"][0]["webhook_url"] is None
+
+
+def test_list_aoi_monitors_client_error_fallback_to_cache() -> None:
+    """SkyFiClientError on GET falls back to local cache."""
+    clear_subscription_cache()
+    client = MagicMock(spec=SkyFiClient)
+    client.get.side_effect = SkyFiClientError("Timeout")
+    out = service_list_aoi_monitors(client)
+    assert out["ok"] is True
+    assert out["monitors"] == []
+    client.get.assert_called_once_with("/notifications")
+
+
+def test_list_aoi_monitors_4xx_returns_error() -> None:
+    """GET /notifications 400 returns ok False and error."""
+    clear_subscription_cache()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 400
+    mock_resp.text = "Bad Request"
+    client = MagicMock(spec=SkyFiClient)
+    client.get.return_value = mock_resp
+
+    out = service_list_aoi_monitors(client)
+    assert out["ok"] is False
+    assert "monitors" in out
+    assert out["monitors"] == []
+    assert "error" in out

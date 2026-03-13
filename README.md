@@ -18,11 +18,17 @@ MCP server for the SkyFi satellite imagery platform. AI agents can search imager
 | 7 | ✅ Done | Testing & deployment (≥80% coverage, integration tests). One item may be documented separately by maintainers. |
 | **8** | **Next** | **Open source readiness:** integration docs (ADK, LangChain, AI SDK, Claude Web, OpenAI, Anthropic, Gemini), demo agent (geospatial deep research), polish. See **[docs/integrations.md](docs/integrations.md)** (provider guides) and **docs/skyfi_execution_plan_final.md** Phase 8. |
 
-**MCP tools:** `ping`, `search_imagery`, `calculate_aoi_price`, `check_feasibility`, `get_pass_prediction`, `request_image_order`, `confirm_image_order`, `poll_order_status`, `get_user_orders`, `get_order_download_url`, `download_order_file`, `download_recent_orders`, `setup_aoi_monitoring`, `get_monitoring_events`.
+**MCP tools:** `ping`, `search_imagery`, `calculate_aoi_price`, `check_feasibility`, `get_pass_prediction`, `request_image_order`, `confirm_image_order`, `poll_order_status`, `get_user_orders`, `get_order_download_url`, `download_order_file`, `download_recent_orders`, `setup_aoi_monitoring`, `list_aoi_monitors`, `get_monitoring_events`.
 
 **Tests:** 109 tests (pytest). Phase 0 script validates live SkyFi API when `SKYFI_WEBHOOK_BASE_URL` is set.
 
 **Multi-user deployment:** For a shared public URL (e.g. behind Cloudflare), clients send their SkyFi API key in the **`X-Skyfi-Api-Key`** request header. If missing, the server uses `X_SKYFI_API_KEY` from env (single-tenant). See [docs/integrations.md](docs/integrations.md).
+
+### Local mode vs deployed (shared) mode
+
+**Local mode:** You run the MCP server on your machine (e.g. `docker compose up` or `python -m src.server`). Set your SkyFi API key in the server environment (e.g. `X_SKYFI_API_KEY` in `.env`). When you connect from Claude Desktop or Claude Code to `http://localhost:8000/mcp`, you can omit the `X-Skyfi-Api-Key` header—the server will use the key from the environment. This is ideal for a single user or development.
+
+**Deployed (shared) mode:** The server is hosted at a public URL (e.g. Railway or your own domain). Multiple users can connect to the same server. Each user must send their own SkyFi API key on every request using the **`X-Skyfi-Api-Key`** header. If the header is missing, the server falls back to `X_SKYFI_API_KEY` from its environment (if set), which is usually not what you want when many users share one URL. See [docs/integrations.md](docs/integrations.md) and the [Claude Desktop guide](docs/integrations/anthropic-claude-code.md) for how to send the header (e.g. `npx mcp-remote` with `--header`).
 
 **Download order images to disk (MCP):** Use the MCP tools so Claude (or any agent) can save files for you:
 - **`download_recent_orders(output_directory, limit?, deliverable_type?)`** — downloads recent orders into that directory (files: `skyfi-{order_code}.png`).

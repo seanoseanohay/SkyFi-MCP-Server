@@ -20,6 +20,7 @@ from src.tools.calculate_aoi_price import calculate_aoi_price
 from src.tools.check_feasibility import check_feasibility
 from src.tools.confirm_image_order import confirm_image_order
 from src.tools.get_monitoring_events import get_monitoring_events
+from src.tools.list_aoi_monitors import list_aoi_monitors
 from src.tools.download_order_file import download_order_file
 from src.tools.download_recent_orders import download_recent_orders
 from src.tools.get_order_download_url import get_order_download_url
@@ -70,6 +71,7 @@ mcp.tool()(download_order_file)
 mcp.tool()(download_recent_orders)
 # Phase 5: monitoring
 mcp.tool()(setup_aoi_monitoring)
+mcp.tool()(list_aoi_monitors)
 mcp.tool()(get_monitoring_events)
 
 
