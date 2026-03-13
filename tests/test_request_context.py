@@ -5,7 +5,9 @@ from unittest.mock import patch
 from src.client.skyfi_client import SkyFiClient
 from src.request_context import (
     clear_request_context,
+    get_derived_webhook_url,
     get_notification_url_from_context,
+    get_request_base_url_from_context,
     get_skyfi_client,
     get_webhook_url_from_context,
     set_request_context,
@@ -98,3 +100,42 @@ def test_get_webhook_url_from_context() -> None:
         assert get_webhook_url_from_context() == "https://my-tunnel.example.com/webhooks/skyfi"
     finally:
         clear_request_context()
+
+
+def test_get_request_base_url_from_context() -> None:
+    """Context can include request_base_url (derived from request in middleware); getter returns it."""
+    clear_request_context()
+    set_request_context(api_key=None, request_base_url="https://keenermcp.com")
+    try:
+        assert get_request_base_url_from_context() == "https://keenermcp.com"
+    finally:
+        clear_request_context()
+
+
+def test_get_derived_webhook_url_uses_public_request_base() -> None:
+    """get_derived_webhook_url returns base + /webhooks/skyfi when request_base_url is public."""
+    clear_request_context()
+    set_request_context(api_key=None, request_base_url="https://my-mcp.example.com")
+    try:
+        assert get_derived_webhook_url() == "https://my-mcp.example.com/webhooks/skyfi"
+    finally:
+        clear_request_context()
+
+
+def test_get_derived_webhook_url_rejects_localhost() -> None:
+    """get_derived_webhook_url returns None for localhost (SkyFi cannot reach it)."""
+    clear_request_context()
+    set_request_context(api_key=None, request_base_url="http://localhost:8000")
+    try:
+        assert get_derived_webhook_url() is None
+    finally:
+        clear_request_context()
+
+
+def test_get_derived_webhook_url_uses_mcp_public_url_when_no_request_base() -> None:
+    """get_derived_webhook_url falls back to settings.mcp_public_url when set and public."""
+    clear_request_context()
+    set_request_context(api_key=None)  # no request_base_url
+    with patch("src.request_context.settings") as mock_settings:
+        mock_settings.mcp_public_url = "https://railway-app.example.com"
+        assert get_derived_webhook_url() == "https://railway-app.example.com/webhooks/skyfi"

@@ -98,6 +98,32 @@ def test_setup_aoi_monitoring_uses_webhook_url_from_header_when_no_arg() -> None
     assert body["webhookUrl"] == "https://my-tunnel.example.com/webhooks/skyfi"
 
 
+def test_setup_aoi_monitoring_uses_derived_webhook_url_when_public_request_base() -> None:
+    """When webhook_url is omitted and no header/env, uses derived URL from request base (public host)."""
+    clear_subscription_cache()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 201
+    mock_resp.json.return_value = {"id": "mon-derived"}
+    mock_resp.text = "{}"
+
+    with patch("src.tools.setup_aoi_monitoring.settings") as mock_settings:
+        mock_settings.webhook_base_url = ""
+        with patch("src.tools.setup_aoi_monitoring.get_webhook_url_from_context", return_value=None):
+            with patch("src.tools.setup_aoi_monitoring.get_derived_webhook_url") as mock_derived:
+                mock_derived.return_value = "https://keenermcp.com/webhooks/skyfi"
+                with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
+                    mock_client = MagicMock(spec=SkyFiClient)
+                    mock_client.post.return_value = mock_resp
+                    mock_get_client.return_value = mock_client
+
+                    out = setup_aoi_monitoring(aoi_wkt=WKT_SF)
+
+    assert out["error"] is None
+    assert out["subscription_id"] == "mon-derived"
+    body = mock_client.post.call_args[1]["json"]
+    assert body["webhookUrl"] == "https://keenermcp.com/webhooks/skyfi"
+
+
 def test_setup_aoi_monitoring_api_error_returns_error() -> None:
     """API failure returns error in tool response."""
     clear_subscription_cache()

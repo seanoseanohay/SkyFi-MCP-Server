@@ -10,9 +10,8 @@ Use the SkyFi MCP server with [Claude Code](https://docs.anthropic.com/en/docs/c
    - Local: `docker compose up --build` → endpoint `http://localhost:8000/mcp`
    - Or deploy and use that server's URL (e.g. `https://your-host.example.com/mcp`)
 
-2. **Ensure the server has SkyFi credentials and (for AOI monitoring) webhook URL** in the server environment (e.g. `.env`):
-   - `X_SKYFI_API_KEY`, `SKYFI_API_BASE_URL` (see [.env.example](../../.env.example))
-   - **`SKYFI_WEBHOOK_BASE_URL`** — public URL where SkyFi will POST when new imagery matches a watched AOI (e.g. your tunnel or deployed server + `/webhooks/skyfi`). When this is set, the AI can call `setup_aoi_monitoring` with just the AOI; the server uses this URL automatically and the AI does not need to ask the user for a webhook or use any headers.
+2. **Ensure the server has SkyFi credentials** in the server environment (e.g. `.env`): `X_SKYFI_API_KEY`, `SKYFI_API_BASE_URL` (see [.env.example](../../.env.example)).  
+   **For AOI monitoring:** The server can auto-derive the webhook URL (where SkyFi POSTs) when the client connects via a **public URL** (e.g. `https://your-mcp.com/mcp`). It uses that host + `/webhooks/skyfi`. If the client connects via localhost, set **`SKYFI_WEBHOOK_BASE_URL`** to your public webhook URL, or **`MCP_PUBLIC_URL`** (or **`PUBLIC_URL`**) to your server’s public base URL so the server can derive it.
 
 ## Configuration
 
@@ -24,7 +23,7 @@ Claude Code supports remote MCP over **Streamable HTTP**. One command adds the S
 claude mcp add --transport http skyfi http://localhost:8000/mcp
 ```
 
-For a deployed server, use that URL. **No headers are required.** Set `SKYFI_WEBHOOK_BASE_URL` on the **server** (e.g. in `.env` or your deployment config); then when you ask for AOI monitoring (e.g. “Set up AOI monitoring for Austin”), the AI will call the tool with only the AOI and the server will supply the webhook URL from config. The AI does not “grab” anything from MCP—the server already has the URL and uses it when `webhook_url` is omitted.
+For a deployed server, use that URL. **No headers are required.** When you ask for AOI monitoring (e.g. “Set up AOI monitoring for Austin”), the AI calls the tool with only the AOI. The server then uses the webhook URL from: explicit config (`SKYFI_WEBHOOK_BASE_URL` or `X-Skyfi-Webhook-Url`), or **auto-derived** from the request (when the client connects via a public host) or from `MCP_PUBLIC_URL`/`PUBLIC_URL` in the server environment.
 
 Optional: `--scope user` (all projects) or `--scope project` (team `.mcp.json`). Verify with `/mcp` in Claude Code.
 
@@ -59,9 +58,13 @@ Claude Desktop requires a `command` and `args` per server. Use **npx mcp-remote*
 }
 ```
 
+**Webhook URL vs notification URL (do not confuse):**
+- **Webhook URL** = Where **SkyFi** will POST when they have new imagery. This must be the **public URL of this MCP server** (e.g. `https://your-mcp-server.com/webhooks/skyfi`). Set via `SKYFI_WEBHOOK_BASE_URL` on the server or **X-Skyfi-Webhook-Url** header. This is **not** a Slack or Zapier URL.
+- **Notification URL** = Where **we** forward the event after we receive it from SkyFi (e.g. your Slack incoming webhook). Set via `SKYFI_NOTIFICATION_URL` or **X-Skyfi-Notification-Url** header. If you only set the Slack URL in the header, the tool will still fail until the server’s webhook URL (where SkyFi POSTs) is set.
+
 **Optional headers** (only if you want client-specific behavior without changing server env):
-- **X-Skyfi-Webhook-Url**: Override webhook URL per client (otherwise server uses `SKYFI_WEBHOOK_BASE_URL`).
-- **X-Skyfi-Notification-Url**: URL to push SkyFi events to (e.g. Slack webhook).
+- **X-Skyfi-Webhook-Url**: This server’s public URL for SkyFi callbacks (not Slack). Override per client; otherwise server uses `SKYFI_WEBHOOK_BASE_URL`.
+- **X-Skyfi-Notification-Url**: Where we push events after receiving from SkyFi (e.g. Slack webhook).
 
 - Replace `https://your-mcp-server.com/mcp` with your server URL (local: `http://localhost:8000/mcp`; deployed: e.g. `https://keenermcp.com/mcp` or your Railway/public URL).
 - Replace `YOUR_ACTUAL_KEY_HERE` with your SkyFi API key. Do not commit the key to version control.

@@ -4,7 +4,12 @@ Thin MCP tool handler: setup_aoi_monitoring — register AOI with SkyFi for moni
 
 from typing import Any
 
-from src.request_context import get_notification_url_from_context, get_skyfi_client, get_webhook_url_from_context
+from src.request_context import (
+    get_derived_webhook_url,
+    get_notification_url_from_context,
+    get_skyfi_client,
+    get_webhook_url_from_context,
+)
 from src.config import settings
 from src.services import aoi
 from src.services.notifications import setup_aoi_monitoring as setup_aoi_monitoring_service
@@ -16,14 +21,18 @@ def setup_aoi_monitoring(
     notification_url: str | None = None,
 ) -> dict[str, Any]:
     """
-    Set up area-of-interest (AOI) monitoring with SkyFi. SkyFi will POST events to your webhook when new imagery or updates match the AOI.
+    Set up area-of-interest (AOI) monitoring with SkyFi.
 
-    Call with only aoi_wkt when the server is configured with SKYFI_WEBHOOK_BASE_URL (or the client sends X-Skyfi-Webhook-Url). Do not ask the user for a webhook URL unless the tool returns an error saying one is required.
+    Two different URLs (do not confuse them):
+    - webhook_url: The public URL of THIS MCP server where SkyFi will POST when new imagery is available (e.g. https://your-mcp-server.com/webhooks/skyfi). Set via SKYFI_WEBHOOK_BASE_URL or X-Skyfi-Webhook-Url. This is NOT a Slack or Zapier URL.
+    - notification_url: Where we forward events after we receive them from SkyFi (e.g. Slack incoming webhook). Set via SKYFI_NOTIFICATION_URL or X-Skyfi-Notification-Url. If the user says "Slack URL is in the config header", that is notification_url; the server still needs webhook_url (this server's public URL) to be configured.
+
+    The server can auto-derive the webhook URL from the request (when the client connects via a public URL) or from MCP_PUBLIC_URL/PUBLIC_URL in the server environment. Call with only aoi_wkt when the server has SKYFI_WEBHOOK_BASE_URL set, X-Skyfi-Webhook-Url is sent, or the request host is public. Do not ask the user for a webhook URL unless the tool returns an error. Do not use the Slack/notification URL as webhook_url.
 
     Args:
         aoi_wkt: WKT polygon of the area to monitor (e.g. from resolve_location_to_wkt or a known polygon).
-        webhook_url: Optional. URL where SkyFi should send events. Omit when the server has SKYFI_WEBHOOK_BASE_URL set (or client sends X-Skyfi-Webhook-Url); the server will use the configured URL automatically.
-        notification_url: Optional. URL we POST SkyFi events to (e.g. Slack, Zapier). Omit to use server env or X-Skyfi-Notification-Url header.
+        webhook_url: Optional. This server's public URL for SkyFi callbacks. Omit when server has SKYFI_WEBHOOK_BASE_URL or X-Skyfi-Webhook-Url.
+        notification_url: Optional. Where to forward events (e.g. Slack). Omit to use X-Skyfi-Notification-Url header or SKYFI_NOTIFICATION_URL.
 
     Returns:
         Dict with subscription_id and message on success; error on failure.
@@ -40,12 +49,19 @@ def setup_aoi_monitoring(
         (webhook_url or "").strip()
         or get_webhook_url_from_context()
         or (getattr(settings, "webhook_base_url", "") or "").strip()
+        or get_derived_webhook_url()
     )
     if not callback_url:
         return {
             "subscription_id": None,
             "message": None,
-            "error": "Webhook URL not configured. The server administrator should set SKYFI_WEBHOOK_BASE_URL in the server environment (e.g. .env) to the public URL where SkyFi will POST events (e.g. https://your-host/webhooks/skyfi). Then call this tool again with only aoi_wkt.",
+            "error": (
+                "Webhook URL (for SkyFi callbacks) is not configured. This is NOT the same as the Slack/notification URL. "
+                "SkyFi needs the public URL of this MCP server (e.g. https://this-mcp-server.com/webhooks/skyfi). "
+                "Set SKYFI_WEBHOOK_BASE_URL in the server .env, send X-Skyfi-Webhook-Url, set MCP_PUBLIC_URL (or PUBLIC_URL) to your server's public base URL, or ensure the client connects via a public host (so the server can derive it from the request). "
+                "The Slack URL in the config header (X-Skyfi-Notification-Url) is used only for forwarding; it does not replace the webhook URL. "
+                "Then call this tool again with only aoi_wkt."
+            ),
         }
 
     notification_url_value = (

@@ -120,6 +120,8 @@ class Settings:
 
     # AOI monitoring (Phase 5) — base URL for webhook callbacks (SkyFi POSTs events here)
     webhook_base_url: str = _str("SKYFI_WEBHOOK_BASE_URL", "").rstrip("/")
+    # Optional: public base URL of this server (e.g. https://your-app.railway.app). Used to derive webhook URL when not set. MCP_PUBLIC_URL or PUBLIC_URL.
+    mcp_public_url: str = _str("MCP_PUBLIC_URL", os.environ.get("PUBLIC_URL", "")).strip().rstrip("/")
     # Optional: default URL we POST SkyFi events to (e.g. Slack webhook). Used when notification_url not passed to setup_aoi_monitoring.
     notification_url: str = _str("SKYFI_NOTIFICATION_URL", "").strip()
     # Coarse spatial key: centroid rounded to this many decimals (~0.001° ≈ 100 m). Same neighborhood = one subscription.
