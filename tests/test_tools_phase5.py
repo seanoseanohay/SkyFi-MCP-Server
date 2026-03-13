@@ -33,10 +33,10 @@ def test_setup_aoi_monitoring_success_with_webhook_url() -> None:
     mock_resp.json.return_value = {"subscriptionId": "sub-abc"}
     mock_resp.text = "{}"
 
-    with patch("src.tools.setup_aoi_monitoring.SkyFiClient") as mock_client_cls:
+    with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
         mock_client = MagicMock(spec=SkyFiClient)
         mock_client.post.return_value = mock_resp
-        mock_client_cls.return_value = mock_client
+        mock_get_client.return_value = mock_client
 
         out = setup_aoi_monitoring(
             aoi_wkt=WKT_SF,
@@ -58,10 +58,10 @@ def test_setup_aoi_monitoring_uses_webhook_base_url_from_env_when_no_arg() -> No
 
     with patch("src.tools.setup_aoi_monitoring.settings") as mock_settings:
         mock_settings.webhook_base_url = "https://my-server.com/skyfi-events"
-        with patch("src.tools.setup_aoi_monitoring.SkyFiClient") as mock_client_cls:
+        with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
             mock_client = MagicMock(spec=SkyFiClient)
             mock_client.post.return_value = mock_resp
-            mock_client_cls.return_value = mock_client
+            mock_get_client.return_value = mock_client
 
             out = setup_aoi_monitoring(aoi_wkt=WKT_SF)
 
@@ -75,13 +75,13 @@ def test_setup_aoi_monitoring_uses_webhook_base_url_from_env_when_no_arg() -> No
 def test_setup_aoi_monitoring_api_error_returns_error() -> None:
     """API failure returns error in tool response."""
     clear_subscription_cache()
-    with patch("src.tools.setup_aoi_monitoring.SkyFiClient") as mock_client_cls:
+    with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
         mock_client = MagicMock(spec=SkyFiClient)
         mock_resp = MagicMock()
         mock_resp.status_code = 400
         mock_resp.text = "Invalid callback URL"
         mock_client.post.return_value = mock_resp
-        mock_client_cls.return_value = mock_client
+        mock_get_client.return_value = mock_client
 
         out = setup_aoi_monitoring(
             aoi_wkt=WKT_SF,

@@ -4,7 +4,7 @@ Thin MCP tool handler: setup_aoi_monitoring — register AOI with SkyFi for moni
 
 from typing import Any
 
-from src.client.skyfi_client import SkyFiClient
+from src.request_context import get_skyfi_client
 from src.config import settings
 from src.services import aoi
 from src.services.notifications import setup_aoi_monitoring as setup_aoi_monitoring_service
@@ -40,7 +40,7 @@ def setup_aoi_monitoring(
             "error": "webhook_url is required. Pass webhook_url or set SKYFI_WEBHOOK_BASE_URL in the environment.",
         }
 
-    client = SkyFiClient()
+    client = get_skyfi_client()
     result = setup_aoi_monitoring_service(client=client, aoi_wkt=aoi_wkt, webhook_url=callback_url)
 
     if not result.get("ok"):

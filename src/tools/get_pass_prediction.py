@@ -4,7 +4,7 @@ Thin MCP tool handler: get_pass_prediction — validate input and delegate to fe
 
 from typing import Any
 
-from src.client.skyfi_client import SkyFiClient
+from src.request_context import get_skyfi_client
 from src.services import aoi
 from src.services.feasibility import get_pass_prediction as service_get_pass_prediction
 
@@ -38,7 +38,7 @@ def get_pass_prediction(
     if not (to_date and to_date.strip()):
         return {"passes": None, "error": "to_date is required"}
 
-    client = SkyFiClient()
+    client = get_skyfi_client()
     return service_get_pass_prediction(
         client,
         aoi_wkt,

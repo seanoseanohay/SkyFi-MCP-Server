@@ -4,7 +4,7 @@ Thin MCP tool handler: confirm_image_order — execute order after human-in-the-
 
 from typing import Any
 
-from src.client.skyfi_client import SkyFiClient
+from src.request_context import get_skyfi_client
 from src.services.order import confirm_order
 
 
@@ -18,7 +18,7 @@ def confirm_image_order(preview_id: str) -> dict[str, Any]:
     Returns:
         Dict with order_id, status, message; or error (e.g. preview expired or not found).
     """
-    client = SkyFiClient()
+    client = get_skyfi_client()
     result = confirm_order(client, preview_id)
 
     if not result.get("ok"):

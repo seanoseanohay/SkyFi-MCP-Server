@@ -106,8 +106,8 @@ def test_request_image_order_archive_without_archive_id() -> None:
     assert out["preview_id"] is None
 
 
-@patch("src.tools.confirm_image_order.SkyFiClient")
-def test_confirm_image_order_success(mock_client_cls: object) -> None:
+@patch("src.tools.confirm_image_order.get_skyfi_client")
+def test_confirm_image_order_success(mock_get_client: object) -> None:
     """Confirm with valid preview_id calls API and returns order_id."""
     preview = request_image_order(
         order_type="archive",
@@ -116,7 +116,7 @@ def test_confirm_image_order_success(mock_client_cls: object) -> None:
     )
     preview_id = preview["preview_id"]
 
-    mock_client = mock_client_cls.return_value
+    mock_client = mock_get_client.return_value
     mock_resp = MagicMock()
     mock_resp.status_code = 202
     mock_resp.json.return_value = {"orderId": "ord-123", "status": "submitted"}
@@ -136,10 +136,10 @@ def test_confirm_image_order_invalid_preview() -> None:
     assert out["order_id"] is None
 
 
-@patch("src.tools.poll_order_status.SkyFiClient")
-def test_poll_order_status_success(mock_client_cls: object) -> None:
+@patch("src.tools.poll_order_status.get_skyfi_client")
+def test_poll_order_status_success(mock_get_client: object) -> None:
     """Poll with order_id returns status and details."""
-    mock_client = mock_client_cls.return_value
+    mock_client = mock_get_client.return_value
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {"orderId": "o1", "status": "processing"}

@@ -18,9 +18,21 @@ MCP server for the SkyFi satellite imagery platform. AI agents can search imager
 | 7 | ✅ Done | Testing & deployment (≥80% coverage, integration tests). One item may be documented separately by maintainers. |
 | **8** | **Next** | **Open source readiness:** integration docs (ADK, LangChain, AI SDK, Claude Web, OpenAI, Anthropic, Gemini), demo agent (geospatial deep research), polish. See **[docs/integrations.md](docs/integrations.md)** (provider guides) and **docs/skyfi_execution_plan_final.md** Phase 8. |
 
-**MCP tools:** `ping`, `search_imagery`, `calculate_aoi_price`, `check_feasibility`, `get_pass_prediction`, `request_image_order`, `confirm_image_order`, `poll_order_status`, `setup_aoi_monitoring`, `get_monitoring_events`.
+**MCP tools:** `ping`, `search_imagery`, `calculate_aoi_price`, `check_feasibility`, `get_pass_prediction`, `request_image_order`, `confirm_image_order`, `poll_order_status`, `get_user_orders`, `get_order_download_url`, `download_order_file`, `download_recent_orders`, `setup_aoi_monitoring`, `get_monitoring_events`.
 
 **Tests:** 109 tests (pytest). Phase 0 script validates live SkyFi API when `SKYFI_WEBHOOK_BASE_URL` is set.
+
+**Multi-user deployment:** For a shared public URL (e.g. behind Cloudflare), clients send their SkyFi API key in the **`X-Skyfi-Api-Key`** request header. If missing, the server uses `X_SKYFI_API_KEY` from env (single-tenant). See [docs/integrations.md](docs/integrations.md).
+
+**Download order images to disk (MCP):** Use the MCP tools so Claude (or any agent) can save files for you:
+- **`download_recent_orders(output_directory, limit?, deliverable_type?)`** — downloads recent orders into that directory (files: `skyfi-{order_code}.png`).
+- **`download_order_file(order_id, deliverable_type, output_path)`** — downloads one order to a specific path.
+
+Paths are on the machine where the MCP server runs. To get files on your computer:
+- **Local server** (`python -m src.server`): use a path like `~/Downloads` or `~/Downloads/skyfi-1.png`.
+- **Docker:** In `docker-compose.yml`, uncomment the volume `~/Downloads:/downloads`, set `SKYFI_DOWNLOAD_DIR=/downloads` in `.env`, then ask the agent to use `output_directory` or `output_path` = `/downloads`. Files will appear in your host `~/Downloads`.
+
+Alternatively, run the script from the project root: `python scripts/download_recent_orders.py` (saves to `~/Downloads` by default).
 
 ---
 

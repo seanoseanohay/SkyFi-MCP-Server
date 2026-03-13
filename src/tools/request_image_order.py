@@ -4,7 +4,6 @@ Thin MCP tool handler: request_image_order — create order preview with TTL for
 
 from typing import Any
 
-from src.client.skyfi_client import SkyFiClient
 from src.services import aoi
 from src.services.order import request_order_preview
 

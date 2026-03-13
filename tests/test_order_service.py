@@ -1,6 +1,7 @@
 """Tests for order service (preview store, confirm, poll)."""
 
-from unittest.mock import MagicMock
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -8,6 +9,9 @@ from src.client.skyfi_client import SkyFiClient
 from src.services.order import (
     _rewrite_order_api_error,
     confirm_order,
+    download_order_to_path as service_download_order_to_path,
+    get_order_download_url as service_get_order_download_url,
+    get_user_orders as service_get_user_orders,
     poll_order_status,
     request_order_preview,
 )
@@ -307,3 +311,151 @@ def test_confirm_order_returns_rewritten_error_when_api_says_area_unsupported() 
     assert "0.98" in out["error"]
     assert "25" in out["error"] and "500" in out["error"]
     assert "Order API error:" not in out["error"] or "25.0 < 0.98" not in out["error"]
+
+
+def test_get_user_orders_success() -> None:
+    """GET /orders returns total and orders list."""
+    client = MagicMock(spec=SkyFiClient)
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = "{}"
+    mock_resp.json.return_value = {
+        "total": 2,
+        "orders": [
+            {"id": "item-1", "orderId": "ord-1", "status": "DELIVERY_COMPLETED"},
+            {"id": "item-2", "orderId": "ord-2", "status": "CREATED"},
+        ],
+    }
+    client.get.return_value = mock_resp
+
+    out = service_get_user_orders(client, page_number=0, page_size=10)
+    assert out["ok"] is True
+    assert out["total"] == 2
+    assert len(out["orders"]) == 2
+    assert out["page_number"] == 0
+    assert out["page_size"] == 10
+    client.get.assert_called_once()
+    call_args = client.get.call_args
+    assert call_args[0][0] == "/orders"
+    assert call_args[1]["params"] == {"pageNumber": 0, "pageSize": 10}
+
+
+def test_get_user_orders_with_order_type() -> None:
+    """GET /orders with orderType filter passes param."""
+    client = MagicMock(spec=SkyFiClient)
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = "{}"
+    mock_resp.json.return_value = {"total": 0, "orders": []}
+    client.get.return_value = mock_resp
+
+    service_get_user_orders(client, page_number=0, page_size=25, order_type="ARCHIVE")
+    call_args = client.get.call_args
+    assert call_args[1]["params"].get("orderType") == "ARCHIVE"
+
+
+def test_get_user_orders_api_error() -> None:
+    """GET /orders non-200 returns error."""
+    client = MagicMock(spec=SkyFiClient)
+    mock_resp = MagicMock()
+    mock_resp.status_code = 401
+    mock_resp.text = "Unauthorized"
+    client.get.return_value = mock_resp
+
+    out = service_get_user_orders(client)
+    assert out["ok"] is False
+    assert "error" in out
+
+
+def test_get_order_download_url_302_success() -> None:
+    """GET /orders/{id}/image returns 302 Location as download_url."""
+    client = MagicMock(spec=SkyFiClient)
+    mock_resp = MagicMock()
+    mock_resp.status_code = 302
+    mock_resp.headers = {"Location": "https://storage.example.com/signed-url-123"}
+    client.get.return_value = mock_resp
+
+    out = service_get_order_download_url(client, "ord-1", "image")
+    assert out["ok"] is True
+    assert out["download_url"] == "https://storage.example.com/signed-url-123"
+    assert out["deliverable_type"] == "image"
+    client.get.assert_called_once_with("/orders/ord-1/image", allow_redirects=False)
+
+
+def test_get_order_download_url_307_success() -> None:
+    """GET /orders/{id}/image returns 307 Location as download_url (SkyFi behavior)."""
+    client = MagicMock(spec=SkyFiClient)
+    mock_resp = MagicMock()
+    mock_resp.status_code = 307
+    mock_resp.headers = {"Location": "https://storage.skyfi.com/signed-307"}
+    client.get.return_value = mock_resp
+
+    out = service_get_order_download_url(client, "ord-2", "image")
+    assert out["ok"] is True
+    assert out["download_url"] == "https://storage.skyfi.com/signed-307"
+    assert out["deliverable_type"] == "image"
+    client.get.assert_called_once_with("/orders/ord-2/image", allow_redirects=False)
+
+
+def test_get_order_download_url_404() -> None:
+    """GET /orders/{id}/image 404 returns error."""
+    client = MagicMock(spec=SkyFiClient)
+    mock_resp = MagicMock()
+    mock_resp.status_code = 404
+    mock_resp.text = "Not found"
+    client.get.return_value = mock_resp
+
+    out = service_get_order_download_url(client, "ord-1", "image")
+    assert out["ok"] is False
+    assert "not found" in out["error"].lower() or "Order" in out["error"]
+
+
+def test_get_order_download_url_invalid_deliverable_type() -> None:
+    """Invalid deliverable_type returns error without calling API."""
+    client = MagicMock(spec=SkyFiClient)
+    out = service_get_order_download_url(client, "ord-1", "invalid")
+    assert out["ok"] is False
+    assert "image" in out["error"] and "payload" in out["error"] and "cog" in out["error"]
+    client.get.assert_not_called()
+
+
+def test_get_order_download_url_empty_order_id() -> None:
+    """Empty order_id returns error."""
+    client = MagicMock(spec=SkyFiClient)
+    out = service_get_order_download_url(client, "", "image")
+    assert out["ok"] is False
+    assert "order_id" in out["error"].lower()
+    client.get.assert_not_called()
+
+
+def test_download_order_to_path_success(tmp_path: Path) -> None:
+    """download_order_to_path fetches URL and writes file."""
+    client = MagicMock(spec=SkyFiClient)
+    mock_api_resp = MagicMock()
+    mock_api_resp.status_code = 302
+    mock_api_resp.headers = {"Location": "https://storage.example.com/signed"}
+    client.get.return_value = mock_api_resp
+
+    out_file = tmp_path / "skyfi-test.png"
+    with patch("src.services.order.requests.get") as mock_get:
+        mock_http = MagicMock()
+        mock_http.raise_for_status = MagicMock()
+        mock_http.content = b"fake-png-bytes"
+        mock_get.return_value = mock_http
+
+        out = service_download_order_to_path(client, "ord-1", "image", str(out_file))
+    assert out["ok"] is True
+    assert out["path"] == str(out_file)
+    assert out["bytes_written"] == len(b"fake-png-bytes")
+    assert out_file.read_bytes() == b"fake-png-bytes"
+    mock_get.assert_called_once()
+    assert "storage.example.com" in mock_get.call_args[0][0]
+
+
+def test_download_order_to_path_empty_order_id() -> None:
+    """download_order_to_path with empty order_id returns error."""
+    client = MagicMock(spec=SkyFiClient)
+    out = service_download_order_to_path(client, "", "image", "/tmp/out.png")
+    assert out["ok"] is False
+    assert "order_id" in out["error"].lower()
+    client.get.assert_not_called()

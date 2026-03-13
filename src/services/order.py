@@ -4,10 +4,14 @@ Branch: archive (POST /order-archive) vs tasking (POST /order-tasking).
 HITL: request creates preview; confirm executes order only after human approval.
 """
 
+import os
 import re
 import time
 import uuid
+from pathlib import Path
 from typing import Any
+
+import requests
 
 from src.client.skyfi_client import SkyFiClient, SkyFiClientError
 from src.config import get_logger, settings
@@ -246,4 +250,255 @@ def poll_order_status(client: SkyFiClient, order_id: str) -> dict[str, Any]:
         "order_id": order_id,
         "status": status,
         "details": data,
+    }
+
+
+def get_user_orders(
+    client: SkyFiClient,
+    page_number: int = 0,
+    page_size: int = 25,
+    order_type: str | None = None,
+) -> dict[str, Any]:
+    """
+    GET /orders — list the customer's orders (paginated).
+
+    Returns:
+        On success: {"ok": True, "total", "orders": [{order_id, id, orderType, status, ...}], "page_number", "page_size"}
+        On failure: {"ok": False, "error": "message"}
+    """
+    page_number = max(0, page_number)
+    page_size = max(1, min(100, page_size))
+    params: list[tuple[str, str | int]] = [
+        ("pageNumber", page_number),
+        ("pageSize", page_size),
+    ]
+    if order_type and str(order_type).strip().upper() in ("ARCHIVE", "TASKING"):
+        params.append(("orderType", order_type.strip().upper()))
+
+    try:
+        resp = client.get("/orders", params=dict(params))
+    except SkyFiClientError as e:
+        logger.warning("Get user orders failed: %s", e)
+        return {"ok": False, "error": str(e)}
+
+    if resp.status_code != 200:
+        msg = resp.text[:500] if resp.text else f"HTTP {resp.status_code}"
+        return {"ok": False, "error": f"Orders API error: {msg}"}
+
+    try:
+        data = resp.json() if resp.text else {}
+    except Exception:
+        data = {}
+    total = data.get("total", 0)
+    orders = data.get("orders") or []
+
+    return {
+        "ok": True,
+        "total": total,
+        "orders": orders,
+        "page_number": page_number,
+        "page_size": page_size,
+    }
+
+
+def get_order_download_url(
+    client: SkyFiClient,
+    order_id: str,
+    deliverable_type: str,
+) -> dict[str, Any]:
+    """
+    GET /orders/{order_id}/{deliverable_type} with allow_redirects=False.
+    Returns the Location (signed download URL) from a 302 or 307 redirect.
+
+    Returns:
+        On success: {"ok": True, "download_url": str, "deliverable_type": str}
+        On failure: {"ok": False, "error": "message"}
+    """
+    order_id = (order_id or "").strip()
+    if not order_id:
+        return {"ok": False, "error": "order_id is required"}
+
+    dtype = (deliverable_type or "").strip().lower()
+    if dtype not in ("image", "payload", "cog"):
+        return {
+            "ok": False,
+            "error": "deliverable_type must be one of: image, payload, cog",
+        }
+
+    try:
+        resp = client.get(f"/orders/{order_id}/{dtype}", allow_redirects=False)
+    except SkyFiClientError as e:
+        logger.warning("Get order download URL failed: %s", e)
+        return {"ok": False, "error": str(e)}
+
+    if resp.status_code in (302, 307):
+        location = resp.headers.get("Location") or resp.headers.get("location")
+        if location:
+            return {
+                "ok": True,
+                "download_url": location,
+                "deliverable_type": dtype,
+            }
+        return {"ok": False, "error": "Redirect missing Location header"}
+
+    if resp.status_code == 404:
+        return {
+            "ok": False,
+            "error": "Order or deliverable not found. Use poll_order_status to confirm the order is delivered, then request image, payload, or cog.",
+        }
+
+    msg = resp.text[:500] if resp.text else f"HTTP {resp.status_code}"
+    return {"ok": False, "error": f"Download URL API error: {msg}"}
+
+
+def _allowed_download_base() -> Path | None:
+    """If SKYFI_DOWNLOAD_DIR is set, return its resolved path; else None (no restriction)."""
+    raw = os.environ.get("SKYFI_DOWNLOAD_DIR", "").strip()
+    if not raw:
+        return None
+    return Path(raw).expanduser().resolve()
+
+
+def _resolve_download_path(requested: str) -> dict[str, Any]:
+    """
+    Resolve requested path for writing. If SKYFI_DOWNLOAD_DIR is set, path must be under it.
+    Returns {"ok": True, "path": Path} or {"ok": False, "error": str}.
+    """
+    requested = (requested or "").strip()
+    if not requested:
+        return {"ok": False, "error": "output path is required"}
+    try:
+        p = Path(requested).expanduser().resolve()
+    except Exception as e:
+        return {"ok": False, "error": f"Invalid path: {e}"}
+    base = _allowed_download_base()
+    if base is not None:
+        try:
+            p_real = p.resolve()
+            base_real = base.resolve()
+            if os.path.commonpath([str(base_real), str(p_real)]) != str(base_real):
+                return {"ok": False, "error": f"Path must be under SKYFI_DOWNLOAD_DIR ({base_real})"}
+        except (ValueError, OSError) as e:
+            return {"ok": False, "error": str(e)}
+    return {"ok": True, "path": p}
+
+
+def download_order_to_path(
+    client: SkyFiClient,
+    order_id: str,
+    deliverable_type: str,
+    output_path: str,
+) -> dict[str, Any]:
+    """
+    Get signed download URL for the order, fetch the file, and write it to output_path.
+    If SKYFI_DOWNLOAD_DIR is set (e.g. in Docker), output_path must be under that directory.
+
+    Returns:
+        On success: {"ok": True, "path": str, "bytes_written": int}
+        On failure: {"ok": False, "error": str}
+    """
+    order_id = (order_id or "").strip()
+    if not order_id:
+        return {"ok": False, "error": "order_id is required"}
+
+    resolved = _resolve_download_path(output_path)
+    if not resolved.get("ok"):
+        return {"ok": False, "error": resolved.get("error", "Invalid path")}
+    path = resolved["path"]
+
+    url_result = get_order_download_url(client, order_id=order_id, deliverable_type=deliverable_type)
+    if not url_result.get("ok"):
+        return {"ok": False, "error": url_result.get("error", "Failed to get download URL")}
+    url = url_result.get("download_url")
+    if not url:
+        return {"ok": False, "error": "No download URL in response"}
+
+    try:
+        r = requests.get(url, stream=True, timeout=60)
+        r.raise_for_status()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(r.content)
+        n = path.stat().st_size
+        logger.info("Downloaded order %s to %s (%s bytes)", order_id, path, n)
+        return {"ok": True, "path": str(path), "bytes_written": n}
+    except requests.RequestException as e:
+        logger.warning("Download failed for order %s: %s", order_id, e)
+        return {"ok": False, "error": f"Download failed: {e}"}
+    except OSError as e:
+        logger.warning("Write failed for order %s: %s", order_id, e)
+        return {"ok": False, "error": f"Could not write file: {e}"}
+
+
+def _order_code_for_filename(order: dict[str, Any]) -> str:
+    """Short sanitized label for an order (for filenames)."""
+    code = order.get("code") or order.get("orderId") or order.get("id") or "order"
+    return re.sub(r"[^\w\-]", "_", str(code))[:80]
+
+
+def _deliverable_extension(deliverable_type: str) -> str:
+    if deliverable_type == "image":
+        return "png"
+    if deliverable_type == "payload":
+        return "zip"
+    return "tif"
+
+
+def download_recent_orders_to_directory(
+    client: SkyFiClient,
+    output_directory: str,
+    limit: int = 25,
+    deliverable_type: str = "image",
+) -> dict[str, Any]:
+    """
+    List recent orders, get each download URL, and save files into output_directory.
+    Filenames: skyfi-{order_code}.{ext}. If SKYFI_DOWNLOAD_DIR is set, output_directory must be under it.
+
+    Returns:
+        On success: {"ok": True, "downloaded": [...], "errors": [...], "resolved_directory": str}
+        On failure: {"ok": False, "error": str}
+    """
+    resolved = _resolve_download_path(output_directory)
+    if not resolved.get("ok"):
+        return {"ok": False, "error": resolved.get("error", "Invalid path")}
+    out_dir = resolved["path"]
+    if not out_dir.is_dir():
+        try:
+            out_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            return {"ok": False, "error": f"Could not create directory: {e}"}
+
+    list_result = get_user_orders(client, page_number=0, page_size=min(limit, 100))
+    if not list_result.get("ok"):
+        return {"ok": False, "error": list_result.get("error", "Failed to list orders")}
+    orders = list_result.get("orders") or []
+    if not orders:
+        return {"ok": True, "downloaded": [], "errors": []}
+
+    ext = _deliverable_extension(deliverable_type.strip().lower() or "image")
+    downloaded: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for order in orders[:limit]:
+        oid = order.get("orderId") or order.get("id")
+        if not oid:
+            continue
+        code = _order_code_for_filename(order)
+        filename = f"skyfi-{code}.{ext}"
+        file_path = out_dir / filename
+        result = download_order_to_path(
+            client, order_id=str(oid), deliverable_type=deliverable_type, output_path=str(file_path)
+        )
+        if result.get("ok"):
+            downloaded.append({
+                "order_id": str(oid),
+                "path": result["path"],
+                "bytes_written": result.get("bytes_written", 0),
+            })
+        else:
+            errors.append(f"Order {oid}: {result.get('error', 'unknown')}")
+
+    return {
+        "ok": True,
+        "downloaded": downloaded,
+        "errors": errors,
+        "resolved_directory": str(out_dir),
     }

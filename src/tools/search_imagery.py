@@ -4,7 +4,7 @@ Thin MCP tool handler: search_imagery — validate input and delegate to search 
 
 from typing import Any
 
-from src.client.skyfi_client import SkyFiClient
+from src.request_context import get_skyfi_client
 from src.services import aoi
 from src.services.search import search_archives
 
@@ -36,7 +36,7 @@ def search_imagery(
             "error": validation.get("error", "Invalid AOI"),
         }
 
-    client = SkyFiClient()
+    client = get_skyfi_client()
     return search_archives(
         client,
         aoi_wkt,

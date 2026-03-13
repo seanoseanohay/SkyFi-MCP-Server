@@ -57,6 +57,30 @@ def test_poll_order_status_tool_registered() -> None:
     assert result is not None
 
 
+def test_get_user_orders_tool_registered() -> None:
+    """Server exposes get_user_orders tool (list orders)."""
+    result = mcp._tool_manager._tools.get("get_user_orders")
+    assert result is not None
+
+
+def test_get_order_download_url_tool_registered() -> None:
+    """Server exposes get_order_download_url tool (signed download URL)."""
+    result = mcp._tool_manager._tools.get("get_order_download_url")
+    assert result is not None
+
+
+def test_download_order_file_tool_registered() -> None:
+    """Server exposes download_order_file tool."""
+    result = mcp._tool_manager._tools.get("download_order_file")
+    assert result is not None
+
+
+def test_download_recent_orders_tool_registered() -> None:
+    """Server exposes download_recent_orders tool."""
+    result = mcp._tool_manager._tools.get("download_recent_orders")
+    assert result is not None
+
+
 def test_setup_aoi_monitoring_tool_registered() -> None:
     """Server exposes setup_aoi_monitoring tool (Phase 5)."""
     result = mcp._tool_manager._tools.get("setup_aoi_monitoring")

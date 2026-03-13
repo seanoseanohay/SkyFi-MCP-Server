@@ -17,8 +17,8 @@ def test_search_imagery_rejects_invalid_aoi() -> None:
     assert out["nextPage"] is None
 
 
-@patch("src.tools.search_imagery.SkyFiClient")
-def test_search_imagery_returns_results_when_valid(mock_client_cls: MagicMock) -> None:
+@patch("src.tools.search_imagery.get_skyfi_client")
+def test_search_imagery_returns_results_when_valid(mock_get_client: MagicMock) -> None:
     """Valid AOI delegates to service and returns results."""
     mock_client = MagicMock()
     mock_resp = MagicMock()
@@ -26,7 +26,7 @@ def test_search_imagery_returns_results_when_valid(mock_client_cls: MagicMock) -
     mock_resp.json.return_value = {"archives": [{"archiveId": "x", "thumbnailUrls": {}}], "nextPage": None}
     mock_resp.text = ""
     mock_client.post.return_value = mock_resp
-    mock_client_cls.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     out = search_imagery(WKT_SF)
     assert out["error"] is None
@@ -42,15 +42,15 @@ def test_calculate_aoi_price_rejects_invalid_aoi() -> None:
     assert out["pricing"] is None
 
 
-@patch("src.tools.calculate_aoi_price.SkyFiClient")
-def test_calculate_aoi_price_returns_pricing_when_valid(mock_client_cls: MagicMock) -> None:
+@patch("src.tools.calculate_aoi_price.get_skyfi_client")
+def test_calculate_aoi_price_returns_pricing_when_valid(mock_get_client: MagicMock) -> None:
     """Valid AOI delegates to service and returns pricing."""
     mock_client = MagicMock()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {"productTypes": []}
     mock_client.post.return_value = mock_resp
-    mock_client_cls.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     out = calculate_aoi_price(WKT_SF)
     assert out["error"] is None

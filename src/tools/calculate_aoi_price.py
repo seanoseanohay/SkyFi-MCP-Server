@@ -4,7 +4,7 @@ Thin MCP tool handler: calculate_aoi_price — validate input and delegate to pr
 
 from typing import Any
 
-from src.client.skyfi_client import SkyFiClient
+from src.request_context import get_skyfi_client
 from src.services import aoi
 from src.services.pricing import calculate_aoi_price as pricing_calculate
 
@@ -24,5 +24,5 @@ def calculate_aoi_price(aoi_wkt: str) -> dict[str, Any]:
     if not validation.get("ok"):
         return {"pricing": None, "error": validation.get("error", "Invalid AOI")}
 
-    client = SkyFiClient()
+    client = get_skyfi_client()
     return pricing_calculate(client, aoi_wkt)

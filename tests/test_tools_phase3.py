@@ -16,8 +16,8 @@ def test_check_feasibility_rejects_invalid_aoi() -> None:
     assert out["feasibility"] is None
 
 
-@patch("src.tools.check_feasibility.SkyFiClient")
-def test_check_feasibility_returns_result_when_valid(mock_client_cls: MagicMock) -> None:
+@patch("src.tools.check_feasibility.get_skyfi_client")
+def test_check_feasibility_returns_result_when_valid(mock_get_client: MagicMock) -> None:
     """Valid AOI delegates to service and returns feasibility."""
     mock_client = MagicMock()
     mock_resp = MagicMock()
@@ -25,7 +25,7 @@ def test_check_feasibility_returns_result_when_valid(mock_client_cls: MagicMock)
     mock_resp.json.return_value = {"feasible": True, "results": []}
     mock_resp.text = ""
     mock_client.post.return_value = mock_resp
-    mock_client_cls.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     out = check_feasibility(WKT_SF)
     assert out["error"] is None
@@ -58,8 +58,8 @@ def test_get_pass_prediction_requires_to_date() -> None:
     assert out["passes"] is None
 
 
-@patch("src.tools.get_pass_prediction.SkyFiClient")
-def test_get_pass_prediction_returns_passes_when_valid(mock_client_cls: MagicMock) -> None:
+@patch("src.tools.get_pass_prediction.get_skyfi_client")
+def test_get_pass_prediction_returns_passes_when_valid(mock_get_client: MagicMock) -> None:
     """Valid AOI and dates delegate to service and return passes."""
     mock_client = MagicMock()
     mock_resp = MagicMock()
@@ -67,7 +67,7 @@ def test_get_pass_prediction_returns_passes_when_valid(mock_client_cls: MagicMoc
     mock_resp.json.return_value = {"passes": [{"satname": "SV-1", "passDate": "2026-03-08T19:28:06Z"}]}
     mock_resp.text = ""
     mock_client.post.return_value = mock_resp
-    mock_client_cls.return_value = mock_client
+    mock_get_client.return_value = mock_client
 
     out = get_pass_prediction(
         WKT_SF,

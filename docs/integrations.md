@@ -21,6 +21,8 @@ The SkyFi Remote MCP Server exposes satellite imagery capabilities as MCP tools.
    - **Deployed:** Use your server’s base URL, e.g. `https://your-host.example.com/mcp`.
 2. **Environment:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` (see [.env.example](../.env.example)). For webhooks (AOI monitoring), set `SKYFI_WEBHOOK_BASE_URL` to a public URL (see [webhook-setup.md](webhook-setup.md)).
 
+**Multi-user / shared deployment:** When the server is deployed for multiple users (e.g. behind Cloudflare), each client must send their SkyFi API key on every request. Configure your client to add the header **`X-Skyfi-Api-Key`** with your SkyFi API key. Optional: **`X-Skyfi-Api-Base-Url`** to override the API base URL. If the header is missing, the server falls back to the env var `X_SKYFI_API_KEY` (single-tenant).
+
 The server uses **Streamable HTTP** (MCP 2024–2025): clients send `initialize` first, then use the returned `mcp-session-id` header on subsequent requests. Provider-specific guides below assume the host handles this session flow.
 
 ## Available tools
@@ -33,6 +35,10 @@ The server uses **Streamable HTTP** (MCP 2024–2025): clients send `initialize`
 - `request_image_order` — create order preview (HITL)  
 - `confirm_image_order` — execute after human confirmation  
 - `poll_order_status` — order status  
+- `get_user_orders` — list user orders (paginated; optional orderType)  
+- `get_order_download_url` — signed download URL for an order (image / payload / cog)  
+- `download_order_file` — download one order's deliverable to a file path (server filesystem)  
+- `download_recent_orders` — download recent orders into a directory (server filesystem)  
 - `setup_aoi_monitoring` — register AOI + webhook  
 - `get_monitoring_events` — recent webhook events for agents  
 

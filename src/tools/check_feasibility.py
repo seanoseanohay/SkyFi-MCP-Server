@@ -4,7 +4,7 @@ Thin MCP tool handler: check_feasibility — validate input and delegate to feas
 
 from typing import Any
 
-from src.client.skyfi_client import SkyFiClient
+from src.request_context import get_skyfi_client
 from src.services import aoi
 from src.services.feasibility import check_feasibility as service_check_feasibility
 
@@ -28,5 +28,5 @@ def check_feasibility(aoi_wkt: str) -> dict[str, Any]:
     if not validation.get("ok"):
         return {"feasibility": None, "error": validation.get("error", "Invalid AOI")}
 
-    client = SkyFiClient()
+    client = get_skyfi_client()
     return service_check_feasibility(client, aoi_wkt)

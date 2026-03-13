@@ -11,4 +11,7 @@ services:
     volumes:
       # Mount source for quick iteration (rebuild to pick up changes)
       - .:/app
+      # Optional: mount host folder so download_recent_orders / download_order_file save to your machine.
+      # Uncomment and set SKYFI_DOWNLOAD_DIR=/downloads in .env so MCP download tools write here.
+      # - ~/Downloads:/downloads
     command: ["python", "-m", "src.server"]

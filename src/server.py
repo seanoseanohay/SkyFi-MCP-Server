@@ -20,7 +20,11 @@ from src.tools.calculate_aoi_price import calculate_aoi_price
 from src.tools.check_feasibility import check_feasibility
 from src.tools.confirm_image_order import confirm_image_order
 from src.tools.get_monitoring_events import get_monitoring_events
+from src.tools.download_order_file import download_order_file
+from src.tools.download_recent_orders import download_recent_orders
+from src.tools.get_order_download_url import get_order_download_url
 from src.tools.get_pass_prediction import get_pass_prediction
+from src.tools.get_user_orders import get_user_orders
 from src.tools.poll_order_status import poll_order_status
 from src.tools.request_image_order import request_image_order
 from src.tools.search_imagery import search_imagery
@@ -60,6 +64,10 @@ mcp.tool()(get_pass_prediction)
 mcp.tool()(request_image_order)
 mcp.tool()(confirm_image_order)
 mcp.tool()(poll_order_status)
+mcp.tool()(get_user_orders)
+mcp.tool()(get_order_download_url)
+mcp.tool()(download_order_file)
+mcp.tool()(download_recent_orders)
 # Phase 5: monitoring
 mcp.tool()(setup_aoi_monitoring)
 mcp.tool()(get_monitoring_events)
@@ -88,7 +96,9 @@ def main() -> None:
     logger.info("Starting SkyFi MCP server at http://%s:%s/mcp", _host, _port)
     app = mcp.streamable_http_app()
     from src.middleware.rate_limit import RateLimitMiddleware
+    from src.middleware.skyfi_request_context import SkyFiRequestContextMiddleware
     app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(SkyFiRequestContextMiddleware)  # Set X-Skyfi-Api-Key from headers for multi-user
     import uvicorn
     uvicorn.run(app, host=_host, port=_port)
 
