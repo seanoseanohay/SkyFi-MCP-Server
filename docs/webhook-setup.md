@@ -91,6 +91,27 @@ After subscriptions are registered, **delivery depends on SkyFi’s notification
 
 ---
 
+## Troubleshooting: “My Areas” on SkyFi’s website shows 0 items
+
+If you use `setup_aoi_monitoring` and get a success response but **don’t see any AOIs on SkyFi’s website** (e.g. “My Areas” shows “0 items”):
+
+1. **Same account**  
+   The SkyFi web app is tied to your **browser login**. Our MCP uses **`X-Skyfi-Api-Key`** (from `.env` or the request header). Notifications created via the API are associated with the **owner of that API key**. If the key in your `.env` (or sent by your MCP client) is for a different SkyFi account than the one you’re logged into in the browser, the website will not show those API-created subscriptions. **Fix:** Use an API key from the same SkyFi account you use to log in at [app.skyfi.com](https://app.skyfi.com). You can create/view keys under your account settings.
+
+2. **“My Areas” vs API notifications**  
+   The SkyFi web UI “My Areas” may show only AOIs that were **added in the browser** (e.g. “Watch an AOI”, “Upload AOI file”). Subscriptions created via the **Platform API** (`POST /notifications`) might appear in a different section of the app or only when listed via the API. **Verify:** Call the **`list_aoi_monitors`** MCP tool (or `GET /notifications` with your API key). If your subscriptions appear there, they were created correctly; the website may simply not surface them in “My Areas”.
+
+3. **Confirm the API call succeeds**  
+   - Run the Phase 0 script with `SKYFI_WEBHOOK_BASE_URL` set:  
+     `python phase0/validate_skyfi_api.py`  
+     Check **Test 5 — POST /notifications** for 2xx and a subscription id.  
+   - After calling `setup_aoi_monitoring`, call **`list_aoi_monitors`**. If the new subscription appears, SkyFi has it; the missing display is likely a web UI vs API difference or account mismatch.
+
+4. **Webhook URL must be public**  
+   If SkyFi cannot reach your webhook URL (e.g. localhost, or tunnel down), they may reject or limit the subscription. Set `SKYFI_WEBHOOK_BASE_URL` to a **public** URL (e.g. Cloudflare tunnel or your deployed app). See [Local: manual tunnel](#local-manual-tunnel-today) above.
+
+---
+
 ## Summary
 
 - **Cloud:** Set `SKYFI_WEBHOOK_BASE_URL` to your app’s public webhook URL. No tunnel.

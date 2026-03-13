@@ -141,7 +141,7 @@ Phase 5 is only *really* validated when the SkyFi API accepts our `POST /notific
    curl -s -X POST http://localhost:8000/mcp -H "Content-Type: application/json" -H "Accept: application/json" -H "mcp-session-id: YOUR_SESSION_ID" \
      -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"setup_aoi_monitoring","arguments":{"aoi_wkt":"POLYGON((-122.42 37.77,-122.41 37.77,-122.41 37.78,-122.42 37.78,-122.42 37.77))"}},"id":4}'
    ```
-   A successful result includes `subscription_id`. SkyFi will POST to your webhook when new archive imagery matches the AOI; agents get those events via **get_monitoring_events** (use `clear_after: true` to consume once).
+   A successful result includes `subscription_id`. SkyFi will POST to your webhook when new archive imagery matches the AOI; agents get those events via **get_monitoring_events** (use `clear_after: true` to consume once). To confirm subscriptions were created, use **list_aoi_monitors**. If the SkyFi website “My Areas” shows 0 items, see **docs/webhook-setup.md** (Troubleshooting).
 
 **Webhook URL for SkyFi:** Use a **public** URL that reaches this server, e.g. `https://<your-host>/webhooks/skyfi`. For local dev, run a **Cloudflare tunnel (cloudflared)** to port 8000 and set that URL in `.env`. For cloud deployment, set your app’s public URL. See **docs/webhook-setup.md** for why we use Cloudflare and for the two paths (local vs cloud).
 

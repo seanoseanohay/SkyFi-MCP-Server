@@ -19,28 +19,39 @@ _request_context: ContextVar["SkyFiRequestContext | None"] = ContextVar(
 
 @dataclass
 class SkyFiRequestContext:
-    """SkyFi API key, optional base URL, and optional notification URL for the current request."""
+    """SkyFi API key, optional base URL, webhook URL, and optional notification URL for the current request."""
 
     api_key: str
     base_url: str | None = None
+    webhook_url: str | None = None
     notification_url: str | None = None
 
 
 def set_request_context(
     api_key: str | None,
     base_url: str | None = None,
+    webhook_url: str | None = None,
     notification_url: str | None = None,
 ) -> None:
     """Set the request context (called by middleware). Do not log api_key."""
     key = (api_key or "").strip() or ""
     url = (base_url.strip() or None) if base_url else None
+    wh_url = (webhook_url.strip() or None) if webhook_url else None
     notif_url = (notification_url.strip() or None) if notification_url else None
-    if key or notif_url:
+    if key or wh_url or notif_url:
         _request_context.set(
-            SkyFiRequestContext(api_key=key, base_url=url, notification_url=notif_url)
+            SkyFiRequestContext(api_key=key, base_url=url, webhook_url=wh_url, notification_url=notif_url)
         )
     else:
         _request_context.set(None)
+
+
+def get_webhook_url_from_context() -> str | None:
+    """Return the webhook URL from the current request context (set by X-Skyfi-Webhook-Url header), if any."""
+    ctx = _request_context.get()
+    if ctx and ctx.webhook_url:
+        return ctx.webhook_url
+    return None
 
 
 def get_notification_url_from_context() -> str | None:

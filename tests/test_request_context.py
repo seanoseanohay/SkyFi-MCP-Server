@@ -7,6 +7,7 @@ from src.request_context import (
     clear_request_context,
     get_notification_url_from_context,
     get_skyfi_client,
+    get_webhook_url_from_context,
     set_request_context,
 )
 
@@ -82,5 +83,18 @@ def test_get_notification_url_from_context_with_only_notification_url() -> None:
             mock_settings.skyfi_api_base_url = "https://app.skyfi.com/platform-api"
             client = get_skyfi_client()
         assert client.api_key == "env-key"
+    finally:
+        clear_request_context()
+
+
+def test_get_webhook_url_from_context() -> None:
+    """Context can include webhook_url (X-Skyfi-Webhook-Url); get_webhook_url_from_context returns it."""
+    clear_request_context()
+    set_request_context(
+        api_key=None,
+        webhook_url="https://my-tunnel.example.com/webhooks/skyfi",
+    )
+    try:
+        assert get_webhook_url_from_context() == "https://my-tunnel.example.com/webhooks/skyfi"
     finally:
         clear_request_context()

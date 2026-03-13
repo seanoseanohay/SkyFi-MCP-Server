@@ -10,7 +10,9 @@ Use the SkyFi MCP server with [Claude Code](https://docs.anthropic.com/en/docs/c
    - Local: `docker compose up --build` → endpoint `http://localhost:8000/mcp`
    - Or deploy and use that server's URL (e.g. `https://your-host.example.com/mcp`)
 
-2. **Ensure the server has SkyFi credentials:** set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` in the server environment (e.g. `.env`). See project root [.env.example](../../.env.example).
+2. **Ensure the server has SkyFi credentials and (for AOI monitoring) webhook URL** in the server environment (e.g. `.env`):
+   - `X_SKYFI_API_KEY`, `SKYFI_API_BASE_URL` (see [.env.example](../../.env.example))
+   - **`SKYFI_WEBHOOK_BASE_URL`** — public URL where SkyFi will POST when new imagery matches a watched AOI (e.g. your tunnel or deployed server + `/webhooks/skyfi`). When this is set, the AI can call `setup_aoi_monitoring` with just the AOI; the server uses this URL automatically and the AI does not need to ask the user for a webhook or use any headers.
 
 ## Configuration
 
@@ -22,7 +24,9 @@ Claude Code supports remote MCP over **Streamable HTTP**. One command adds the S
 claude mcp add --transport http skyfi http://localhost:8000/mcp
 ```
 
-For a deployed server, use that URL. Optional: `--scope user` (all projects) or `--scope project` (team `.mcp.json`). Verify with `/mcp` in Claude Code.
+For a deployed server, use that URL. **No headers are required.** Set `SKYFI_WEBHOOK_BASE_URL` on the **server** (e.g. in `.env` or your deployment config); then when you ask for AOI monitoring (e.g. “Set up AOI monitoring for Austin”), the AI will call the tool with only the AOI and the server will supply the webhook URL from config. The AI does not “grab” anything from MCP—the server already has the URL and uses it when `webhook_url` is omitted.
+
+Optional: `--scope user` (all projects) or `--scope project` (team `.mcp.json`). Verify with `/mcp` in Claude Code.
 
 **Alternative (JSON):** In `.mcp.json` or via `claude mcp add-json`:
 
@@ -35,9 +39,9 @@ For a deployed server, use that URL. Optional: `--scope user` (all projects) or 
 
 ### Claude Desktop
 
-Claude Desktop requires a `command` and `args` per server. Use **npx mcp-remote** with the **`--header`** flag to send your SkyFi API key so the server uses your credentials (required for deployed/shared servers; optional for local when the server has `X_SKYFI_API_KEY` in env). Optional: add **`X-Skyfi-Notification-Url`** with your Slack webhook (or other URL) so AOI monitoring events are pushed to you without setting server env.
+Claude Desktop requires a `command` and `args` per server. Use **npx mcp-remote** with the **`--header`** flag to send your SkyFi API key when using a deployed or shared server (optional for local when the server has `X_SKYFI_API_KEY` in env). **You do not need to add a webhook header** if the server already has `SKYFI_WEBHOOK_BASE_URL` set—the AI will call `setup_aoi_monitoring` with just the AOI and the server will use the configured URL.
 
-**Working config (recommended):**
+**Minimal config (no webhook header):** Set `SKYFI_WEBHOOK_BASE_URL` on the server; then use only the API key header if needed:
 
 ```json
 {
@@ -48,20 +52,21 @@ Claude Desktop requires a `command` and `args` per server. Use **npx mcp-remote*
         "mcp-remote",
         "https://your-mcp-server.com/mcp",
         "--header",
-        "X-Skyfi-Api-Key: YOUR_ACTUAL_KEY_HERE",
-        "--header",
-        "X-Skyfi-Notification-Url: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+        "X-Skyfi-Api-Key: YOUR_ACTUAL_KEY_HERE"
       ]
     }
   }
 }
 ```
 
-- Replace `https://your-mcp-server.com/mcp` with your server URL (local: `http://localhost:8000/mcp`; deployed: e.g. `https://keenermcp.com/mcp` or your Railway/public URL).
-- Replace `YOUR_ACTUAL_KEY_HERE` with your SkyFi API key (same value as `X_SKYFI_API_KEY` in `.env` when running the server locally). Do not commit the key to version control.
-- **X-Skyfi-Notification-Url** (optional): URL where the server will POST SkyFi AOI events (e.g. Slack incoming webhook). Omit if you don't need push notifications or will pass `notification_url` per call.
+**Optional headers** (only if you want client-specific behavior without changing server env):
+- **X-Skyfi-Webhook-Url**: Override webhook URL per client (otherwise server uses `SKYFI_WEBHOOK_BASE_URL`).
+- **X-Skyfi-Notification-Url**: URL to push SkyFi events to (e.g. Slack webhook).
 
-**Local-only (no header):** If the server runs locally with `X_SKYFI_API_KEY` in `.env`, you can omit the header; the server will use the env key. For a deployed or shared server, always send the header so your key is used.
+- Replace `https://your-mcp-server.com/mcp` with your server URL (local: `http://localhost:8000/mcp`; deployed: e.g. `https://keenermcp.com/mcp` or your Railway/public URL).
+- Replace `YOUR_ACTUAL_KEY_HERE` with your SkyFi API key. Do not commit the key to version control.
+
+**Local-only (no header):** If the server runs locally with `X_SKYFI_API_KEY` in `.env`, you can omit the header; the server will use the env key. For a deployed or shared server, send the API key header so your key is used.
 
 Config location: macOS `~/Library/Application Support/Claude/claude_desktop_config.json`, or Settings → Developer → Edit Config. Restart Claude Desktop after changes. The SkyFi server uses **Streamable HTTP** (session-based): the client sends `initialize`, then uses the `mcp-session-id` header on later requests.
 

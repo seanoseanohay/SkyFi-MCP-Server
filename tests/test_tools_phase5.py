@@ -72,6 +72,32 @@ def test_setup_aoi_monitoring_uses_webhook_base_url_from_env_when_no_arg() -> No
     assert body["webhookUrl"] == "https://my-server.com/skyfi-events"
 
 
+def test_setup_aoi_monitoring_uses_webhook_url_from_header_when_no_arg() -> None:
+    """When webhook_url is omitted but X-Skyfi-Webhook-Url header is set (request context), uses it."""
+    clear_subscription_cache()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 201
+    mock_resp.json.return_value = {"id": "mon-header-webhook"}
+    mock_resp.text = "{}"
+
+    with patch("src.tools.setup_aoi_monitoring.settings") as mock_settings:
+        mock_settings.webhook_base_url = ""  # no env; header should provide webhook URL
+        with patch("src.tools.setup_aoi_monitoring.get_webhook_url_from_context") as mock_get_webhook:
+            mock_get_webhook.return_value = "https://my-tunnel.example.com/webhooks/skyfi"
+            with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
+                mock_client = MagicMock(spec=SkyFiClient)
+                mock_client.post.return_value = mock_resp
+                mock_get_client.return_value = mock_client
+
+                out = setup_aoi_monitoring(aoi_wkt=WKT_SF)
+
+    assert out["error"] is None
+    assert out["subscription_id"] == "mon-header-webhook"
+    mock_client.post.assert_called_once()
+    body = mock_client.post.call_args[1]["json"]
+    assert body["webhookUrl"] == "https://my-tunnel.example.com/webhooks/skyfi"
+
+
 def test_setup_aoi_monitoring_api_error_returns_error() -> None:
     """API failure returns error in tool response."""
     clear_subscription_cache()

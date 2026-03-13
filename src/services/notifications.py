@@ -76,7 +76,7 @@ def setup_aoi_monitoring(
             "subscription_id": cached.get("subscription_id"),
             "message": cached.get(
                 "message",
-                "AOI monitoring already enabled for this area (shared subscription).",
+                "AOI monitoring already enabled for this area (shared subscription). Verify with list_aoi_monitors.",
             ),
         }
     if coarse_key is not None and coarse_key in _subscription_by_aoi:
@@ -89,7 +89,7 @@ def setup_aoi_monitoring(
             "subscription_id": cached.get("subscription_id"),
             "message": cached.get(
                 "message",
-                "AOI monitoring already enabled for this area (shared subscription).",
+                "AOI monitoring already enabled for this area (shared subscription). Verify with list_aoi_monitors.",
             ),
         }
 
@@ -99,6 +99,7 @@ def setup_aoi_monitoring(
         "webhookUrl": webhook_url,
     }
 
+    logger.info("Registering AOI monitoring with SkyFi POST /notifications (webhookUrl=%s)", webhook_url[:60] + "..." if len(webhook_url) > 60 else webhook_url)
     try:
         resp = client.post("/notifications", json=body)
     except SkyFiClientError as e:
@@ -125,7 +126,10 @@ def setup_aoi_monitoring(
     if subscription_id is not None:
         subscription_id = str(subscription_id)
 
-    message = "AOI monitoring enabled. SkyFi will POST events to your webhook URL when new imagery or updates match this area."
+    message = (
+        "AOI monitoring enabled. SkyFi will POST events to your webhook URL when new imagery or updates match this area. "
+        "Verify with list_aoi_monitors or in your SkyFi account (same API key as X_SKYFI_API_KEY)."
+    )
     result = {"ok": True, "subscription_id": subscription_id, "message": message}
 
     if notification_url_stripped and subscription_id:
