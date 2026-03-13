@@ -13,16 +13,18 @@ MCP server for the SkyFi satellite imagery platform. AI agents can search imager
 | 2 | ✅ Done | `search_imagery`, `calculate_aoi_price`, pagination, thumbnails |
 | 3 | ✅ Done | `check_feasibility`, `get_pass_prediction`, SAR suggestion |
 | 4 | ✅ Done | `request_image_order`, `confirm_image_order`, `poll_order_status` (HITL) |
-| **5** | **✅ Done** | **`setup_aoi_monitoring`** (POST /notifications); **POST /webhooks/skyfi** handler; **`get_monitoring_events`** to forward events to agents; webhook URL from **SKYFI_WEBHOOK_BASE_URL**. Subscription dedup: exact AOI + coarse spatial key — **docs/design-aoi-subscription-dedup.md**. **Only remaining item:** receive a real callback from SkyFi when they have new imagery. **For demo:** we mock the callback with **`scripts/mock_skyfi_webhook.sh`** (see "Testing from the customer side" below). |
+| **5** | **✅ Done** | **`setup_aoi_monitoring`** (POST /notifications); **POST /webhooks/skyfi** handler; **`get_monitoring_events`** to forward events to agents; optional **notification_url** for push (we POST each SkyFi event to that URL, e.g. Slack/Zapier). Webhook URL from **SKYFI_WEBHOOK_BASE_URL**. Subscription dedup: exact AOI + coarse spatial key — **docs/design-aoi-subscription-dedup.md**. **Only remaining item:** receive a real callback from SkyFi when they have new imagery. **For demo:** we mock the callback with **`scripts/mock_skyfi_webhook.sh`** (see "Testing from the customer side" below). |
 | **6** | **✅ Done** | **Observability:** pricing cache (5 min TTL), pass-prediction cache (AOI + date window), **GET /metrics** (JSON counters). Inbound rate limit optional (RATE_LIMIT_PER_MINUTE; default 0 = off for self-hosted—see docs/observability.md). |
 | 7 | ✅ Done | Testing & deployment (≥80% coverage, integration tests). One item may be documented separately by maintainers. |
 | **8** | **Next** | **Open source readiness:** integration docs (ADK, LangChain, AI SDK, Claude Web, OpenAI, Anthropic, Gemini), demo agent (geospatial deep research), polish. See **[docs/integrations.md](docs/integrations.md)** (provider guides) and **docs/skyfi_execution_plan_final.md** Phase 8. |
 
 **MCP tools:** `ping`, `search_imagery`, `calculate_aoi_price`, `check_feasibility`, `get_pass_prediction`, `request_image_order`, `confirm_image_order`, `poll_order_status`, `get_user_orders`, `get_order_download_url`, `download_order_file`, `download_recent_orders`, `setup_aoi_monitoring`, `list_aoi_monitors`, `get_monitoring_events`.
 
-**Tests:** 109 tests (pytest). Phase 0 script validates live SkyFi API when `SKYFI_WEBHOOK_BASE_URL` is set.
+**Tests:** 143 tests (pytest). Phase 0 script validates live SkyFi API when `SKYFI_WEBHOOK_BASE_URL` is set.
 
-**Multi-user deployment:** For a shared public URL (e.g. behind Cloudflare), clients send their SkyFi API key in the **`X-Skyfi-Api-Key`** request header. If missing, the server uses `X_SKYFI_API_KEY` from env (single-tenant). See [docs/integrations.md](docs/integrations.md).
+**Push notifications (multi-tenant):** When setting up AOI monitoring, pass **notification_url** (e.g. Slack incoming webhook, Zapier) to `setup_aoi_monitoring`, or set **SKYFI_NOTIFICATION_URL** in your environment so it’s used by default. We POST each SkyFi event to that URL so you get notified without polling. You can also send the **X-Skyfi-Notification-Url** request header (e.g. from Claude config); precedence: param → header → env.
+
+**Multi-user deployment:** For a shared public URL (e.g. behind Cloudflare), clients send their SkyFi API key in the **`X-Skyfi-Api-Key`** request header; optional **`X-Skyfi-Notification-Url`** for push notifications. If missing, the server uses env (single-tenant). See [docs/integrations.md](docs/integrations.md).
 
 ### Local mode vs deployed (shared) mode
 

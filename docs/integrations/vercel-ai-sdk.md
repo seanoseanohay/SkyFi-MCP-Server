@@ -15,7 +15,7 @@ Use the SkyFi MCP server with the [Vercel AI SDK](https://ai-sdk.dev/cookbook/no
 The AI SDK cookbook describes how to use MCP tools. Point the SDK’s MCP client at the SkyFi server:
 
 - **MCP server URL:** `https://your-host.example.com/mcp` (or `http://localhost:8000/mcp` for local).
-- **Transport:** HTTP. The SkyFi server uses **Streamable HTTP**: send `initialize` first and send the `mcp-session-id` header on all subsequent requests. If the SDK’s MCP helpers support a URL, use that; otherwise implement a thin wrapper that performs the session handshake and forwards `tools/list` and `tools/call`.
+- **Transport:** HTTP. The SkyFi server uses **Streamable HTTP**: send `initialize` first and send the `mcp-session-id` header on all subsequent requests. If the SDK’s MCP helpers support a URL, use that; otherwise implement a thin wrapper that performs the session handshake and forwards `tools/list` and `tools/call`. Optional request headers: **X-Skyfi-Api-Key**, **X-Skyfi-Notification-Url** (see [integrations.md](../integrations.md)).
 
 ## Minimal example
 

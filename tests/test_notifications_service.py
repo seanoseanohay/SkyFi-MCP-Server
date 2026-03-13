@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 from src.client.skyfi_client import SkyFiClient, SkyFiClientError
 from src.services.notifications import (
     clear_subscription_cache,
+    get_notification_url,
     list_aoi_monitors as service_list_aoi_monitors,
     setup_aoi_monitoring as service_setup_aoi_monitoring,
 )
@@ -47,6 +48,64 @@ def test_setup_aoi_monitoring_success_returns_subscription_id() -> None:
     body = call_args[1]["json"]
     assert body["aoi"] == WKT_SMALL
     assert body["webhookUrl"] == "https://example.com/webhooks/skyfi"
+
+
+def test_setup_aoi_monitoring_stores_notification_url_and_get_returns_it() -> None:
+    """When notification_url is provided, get_notification_url(subscription_id) returns it after setup."""
+    clear_subscription_cache()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"subscriptionId": "sub-456"}
+    mock_resp.text = "{}"
+    client = MagicMock(spec=SkyFiClient)
+    client.post.return_value = mock_resp
+
+    out = service_setup_aoi_monitoring(
+        client,
+        WKT_SMALL,
+        "https://example.com/webhooks/skyfi",
+        notification_url="https://customer.example.com/slack",
+    )
+    assert out["ok"] is True
+    assert get_notification_url("sub-456") == "https://customer.example.com/slack"
+    assert get_notification_url("other") is None
+
+
+def test_setup_aoi_monitoring_cache_hit_updates_notification_url() -> None:
+    """On cache hit, passing notification_url updates the stored URL for that subscription."""
+    clear_subscription_cache()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"subscriptionId": "sub-cached"}
+    mock_resp.text = "{}"
+    client = MagicMock(spec=SkyFiClient)
+    client.post.return_value = mock_resp
+
+    service_setup_aoi_monitoring(client, WKT_SMALL, "https://example.com/hook")
+    assert get_notification_url("sub-cached") is None
+
+    service_setup_aoi_monitoring(
+        client, WKT_SMALL, "https://example.com/hook", notification_url="https://new-url.com/notify"
+    )
+    assert get_notification_url("sub-cached") == "https://new-url.com/notify"
+    client.post.assert_called_once()
+
+
+def test_clear_subscription_cache_clears_notification_urls() -> None:
+    """clear_subscription_cache also clears notification URL map."""
+    clear_subscription_cache()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"subscriptionId": "sub-clear"}
+    mock_resp.text = "{}"
+    client = MagicMock(spec=SkyFiClient)
+    client.post.return_value = mock_resp
+    service_setup_aoi_monitoring(
+        client, WKT_SMALL, "https://example.com/hook", notification_url="https://clear.me"
+    )
+    assert get_notification_url("sub-clear") == "https://clear.me"
+    clear_subscription_cache()
+    assert get_notification_url("sub-clear") is None
 
 
 def test_setup_aoi_monitoring_accepts_notification_id_in_response() -> None:

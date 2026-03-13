@@ -15,6 +15,7 @@ Use the SkyFi MCP server with OpenAI’s [remote MCP / tools](https://platform.o
 OpenAI’s remote MCP support lets you register an MCP server URL. The SkyFi server uses **Streamable HTTP**: the client must call `initialize` first and send the returned `mcp-session-id` header on all later requests.
 
 - **MCP endpoint:** `https://your-host.example.com/mcp`
+- **Optional headers (multi-user):** **X-Skyfi-Api-Key**, **X-Skyfi-Notification-Url**. See [integrations.md](../integrations.md).
 - Configure your OpenAI integration (Assistants API or client) to use this URL as the MCP server. OpenAI’s client should perform the session handshake; if you implement the client yourself, follow the [README “Verify it’s working”](../../README.md#verify-its-working-streamable-http-uses-sessions) flow.
 
 ## Minimal example

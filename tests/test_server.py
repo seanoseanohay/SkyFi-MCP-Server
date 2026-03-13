@@ -1,5 +1,8 @@
 """Tests for MCP server (tool registration and webhook route)."""
 
+import time
+from unittest.mock import patch
+
 import pytest
 from starlette.testclient import TestClient
 
@@ -117,3 +120,23 @@ def test_webhook_skyfi_rejects_invalid_json() -> None:
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 400
+
+
+def test_webhook_skyfi_forwards_to_customer_notification_url_when_set() -> None:
+    """When get_notification_url returns a URL, we POST the payload there in background; response 200 and event stored."""
+    webhook_events.get_events(limit=100, clear_after=True)
+    payload = {"subscriptionId": "sub-forward", "eventType": "new_imagery", "archiveId": "arch-1"}
+    with patch("src.server.get_notification_url", return_value="https://customer.example.com/notify"):
+        with patch("src.server.notify_customer") as mock_notify:
+            app = mcp.streamable_http_app()
+            client = TestClient(app)
+            response = client.post("/webhooks/skyfi", json=payload)
+            time.sleep(0.15)
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+    events = webhook_events.get_events(limit=1)
+    assert len(events) == 1
+    assert events[0]["payload"] == payload
+    mock_notify.assert_called_once()
+    assert mock_notify.call_args[0][0] == "https://customer.example.com/notify"
+    assert mock_notify.call_args[0][1] == payload

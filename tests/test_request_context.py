@@ -5,6 +5,7 @@ from unittest.mock import patch
 from src.client.skyfi_client import SkyFiClient
 from src.request_context import (
     clear_request_context,
+    get_notification_url_from_context,
     get_skyfi_client,
     set_request_context,
 )
@@ -45,12 +46,41 @@ def test_clear_request_context_removes_context() -> None:
 
 
 def test_set_request_context_empty_key_clears() -> None:
-    """set_request_context with empty key sets context to None."""
+    """set_request_context with empty key and no notification_url sets context to None."""
     set_request_context(api_key="x")
-    set_request_context(api_key="")
+    set_request_context(api_key="", base_url=None, notification_url=None)
     with patch("src.client.skyfi_client.settings") as mock_settings:
         mock_settings.skyfi_api_key = "env-key"
         mock_settings.skyfi_api_base_url = "https://app.skyfi.com/platform-api"
         client = get_skyfi_client()
     assert client.api_key == "env-key"
     clear_request_context()
+
+
+def test_set_request_context_with_notification_url() -> None:
+    """set_request_context stores notification_url; get_notification_url_from_context returns it."""
+    clear_request_context()
+    set_request_context(
+        api_key="key",
+        base_url=None,
+        notification_url="https://hooks.slack.com/services/T00/B00/xxx",
+    )
+    try:
+        assert get_notification_url_from_context() == "https://hooks.slack.com/services/T00/B00/xxx"
+    finally:
+        clear_request_context()
+
+
+def test_get_notification_url_from_context_with_only_notification_url() -> None:
+    """Context can be set with only notification_url (no API key); client then uses env."""
+    clear_request_context()
+    set_request_context(api_key=None, notification_url="https://my-slack.com/webhook")
+    try:
+        assert get_notification_url_from_context() == "https://my-slack.com/webhook"
+        with patch("src.client.skyfi_client.settings") as mock_settings:
+            mock_settings.skyfi_api_key = "env-key"
+            mock_settings.skyfi_api_base_url = "https://app.skyfi.com/platform-api"
+            client = get_skyfi_client()
+        assert client.api_key == "env-key"
+    finally:
+        clear_request_context()

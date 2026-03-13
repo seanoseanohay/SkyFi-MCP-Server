@@ -16,6 +16,7 @@ In your Claude Web or custom integration setup, register the SkyFi MCP server as
 
 - **MCP server URL:** `https://your-host.example.com/mcp` (or `http://localhost:8000/mcp` for local).
 - **Transport:** HTTP (Streamable HTTP). The client must send an `initialize` request first and then include the `mcp-session-id` response header on all subsequent requests (`tools/list`, `tools/call`).
+- **Optional headers (multi-user):** **X-Skyfi-Api-Key**, **X-Skyfi-Notification-Url** (e.g. Slack webhook for AOI push). See [integrations.md](../integrations.md).
 
 Anthropic’s docs describe how to add a remote MCP server URL in the custom integration UI or config; point that URL at the SkyFi server’s `/mcp` path.
 

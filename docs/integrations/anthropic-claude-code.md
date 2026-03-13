@@ -35,7 +35,7 @@ For a deployed server, use that URL. Optional: `--scope user` (all projects) or 
 
 ### Claude Desktop
 
-Claude Desktop requires a `command` and `args` per server. Use **npx mcp-remote** with the **`--header`** flag to send your SkyFi API key so the server uses your credentials (required for deployed/shared servers; optional for local when the server has `X_SKYFI_API_KEY` in env).
+Claude Desktop requires a `command` and `args` per server. Use **npx mcp-remote** with the **`--header`** flag to send your SkyFi API key so the server uses your credentials (required for deployed/shared servers; optional for local when the server has `X_SKYFI_API_KEY` in env). Optional: add **`X-Skyfi-Notification-Url`** with your Slack webhook (or other URL) so AOI monitoring events are pushed to you without setting server env.
 
 **Working config (recommended):**
 
@@ -48,7 +48,9 @@ Claude Desktop requires a `command` and `args` per server. Use **npx mcp-remote*
         "mcp-remote",
         "https://your-mcp-server.com/mcp",
         "--header",
-        "X-Skyfi-Api-Key: YOUR_ACTUAL_KEY_HERE"
+        "X-Skyfi-Api-Key: YOUR_ACTUAL_KEY_HERE",
+        "--header",
+        "X-Skyfi-Notification-Url: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
       ]
     }
   }
@@ -57,6 +59,7 @@ Claude Desktop requires a `command` and `args` per server. Use **npx mcp-remote*
 
 - Replace `https://your-mcp-server.com/mcp` with your server URL (local: `http://localhost:8000/mcp`; deployed: e.g. `https://keenermcp.com/mcp` or your Railway/public URL).
 - Replace `YOUR_ACTUAL_KEY_HERE` with your SkyFi API key (same value as `X_SKYFI_API_KEY` in `.env` when running the server locally). Do not commit the key to version control.
+- **X-Skyfi-Notification-Url** (optional): URL where the server will POST SkyFi AOI events (e.g. Slack incoming webhook). Omit if you don't need push notifications or will pass `notification_url` per call.
 
 **Local-only (no header):** If the server runs locally with `X_SKYFI_API_KEY` in `.env`, you can omit the header; the server will use the env key. For a deployed or shared server, always send the header so your key is used.
 

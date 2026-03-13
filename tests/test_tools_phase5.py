@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 from src.client.skyfi_client import SkyFiClient
-from src.services.notifications import clear_subscription_cache
+from src.services.notifications import clear_subscription_cache, get_notification_url
 from src.tools.setup_aoi_monitoring import setup_aoi_monitoring
 
 WKT_SF = "POLYGON((-122.4194 37.7749, -122.4094 37.7749, -122.4094 37.7849, -122.4194 37.7849, -122.4194 37.7749))"
@@ -90,3 +90,52 @@ def test_setup_aoi_monitoring_api_error_returns_error() -> None:
 
     assert out["error"] is not None
     assert out["subscription_id"] is None
+
+
+def test_setup_aoi_monitoring_uses_notification_url_from_env_when_no_arg() -> None:
+    """When notification_url is omitted but SKYFI_NOTIFICATION_URL is set, we store it for the subscription."""
+    clear_subscription_cache()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"subscriptionId": "sub-env-notify"}
+    mock_resp.text = "{}"
+
+    with patch("src.tools.setup_aoi_monitoring.settings") as mock_settings:
+        mock_settings.webhook_base_url = "https://my-server.com/webhooks/skyfi"
+        mock_settings.notification_url = "https://hooks.slack.com/services/T00/B00/xxx"
+        with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
+            mock_client = MagicMock(spec=SkyFiClient)
+            mock_client.post.return_value = mock_resp
+            mock_get_client.return_value = mock_client
+
+            out = setup_aoi_monitoring(aoi_wkt=WKT_SF)
+
+    assert out["error"] is None
+    assert out["subscription_id"] == "sub-env-notify"
+    assert get_notification_url("sub-env-notify") == "https://hooks.slack.com/services/T00/B00/xxx"
+
+
+def test_setup_aoi_monitoring_uses_notification_url_from_header_when_no_param() -> None:
+    """When notification_url is omitted but X-Skyfi-Notification-Url header is set (request context), we use it."""
+    clear_subscription_cache()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"subscriptionId": "sub-header-notify"}
+    mock_resp.text = "{}"
+
+    with patch("src.tools.setup_aoi_monitoring.settings") as mock_settings:
+        mock_settings.webhook_base_url = "https://my-server.com/webhooks/skyfi"
+        mock_settings.notification_url = ""  # env not set; header should win
+        with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
+            mock_client = MagicMock(spec=SkyFiClient)
+            mock_client.post.return_value = mock_resp
+            mock_get_client.return_value = mock_client
+            with patch(
+                "src.tools.setup_aoi_monitoring.get_notification_url_from_context",
+                return_value="https://hooks.slack.com/services/HEADER/url",
+            ):
+                out = setup_aoi_monitoring(aoi_wkt=WKT_SF)
+
+    assert out["error"] is None
+    assert out["subscription_id"] == "sub-header-notify"
+    assert get_notification_url("sub-header-notify") == "https://hooks.slack.com/services/HEADER/url"

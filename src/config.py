@@ -120,6 +120,8 @@ class Settings:
 
     # AOI monitoring (Phase 5) — base URL for webhook callbacks (SkyFi POSTs events here)
     webhook_base_url: str = _str("SKYFI_WEBHOOK_BASE_URL", "").rstrip("/")
+    # Optional: default URL we POST SkyFi events to (e.g. Slack webhook). Used when notification_url not passed to setup_aoi_monitoring.
+    notification_url: str = _str("SKYFI_NOTIFICATION_URL", "").strip()
     # Coarse spatial key: centroid rounded to this many decimals (~0.001° ≈ 100 m). Same neighborhood = one subscription.
     aoi_coarse_key_decimals: int = _int("AOI_COARSE_KEY_DECIMALS", 3)
     # Max monitoring events to retain in memory for agent polling (oldest dropped when full)

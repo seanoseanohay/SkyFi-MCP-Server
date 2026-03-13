@@ -20,7 +20,7 @@ Gemini supports function calling and can be wired to external tools. To use the 
   2. Call `tools/list` with that header and map the returned tools to Gemini function declarations.
   3. On Gemini’s function-call responses, call SkyFi’s `tools/call` with the same session header and pass the result back to Gemini.
 
-The SkyFi server uses **Streamable HTTP** (session-based). If Google provides a built-in MCP client for Gemini, point it at the SkyFi server URL; otherwise implement the small HTTP session flow above.
+The SkyFi server uses **Streamable HTTP** (session-based). If Google provides a built-in MCP client for Gemini, point it at the SkyFi server URL; otherwise implement the small HTTP session flow above. Optional headers: **X-Skyfi-Api-Key**, **X-Skyfi-Notification-Url** (see [integrations.md](../integrations.md)).
 
 ## Minimal example
 

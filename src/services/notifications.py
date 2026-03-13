@@ -16,26 +16,43 @@ logger = get_logger(__name__)
 # Subscription cache: keys are exact (normalize_aoi_key) and/or coarse (coarse_aoi_key). Value = {subscription_id, message}.
 _subscription_by_aoi: dict[str, dict[str, Any]] = {}
 
+# Per-subscription customer notification URL: when we receive a webhook we POST the payload here (multi-tenant).
+_notification_url_by_subscription_id: dict[str, str] = {}
+
 
 def clear_subscription_cache() -> None:
-    """Clear the AOI subscription cache. Used in tests."""
+    """Clear the AOI subscription cache and notification URL map. Used in tests."""
     _subscription_by_aoi.clear()
+    _notification_url_by_subscription_id.clear()
+
+
+def get_notification_url(subscription_id: str | None) -> str | None:
+    """
+    Return the customer notification URL for a subscription, if one was registered.
+    Used by the webhook handler to forward SkyFi events to the customer.
+    """
+    if not subscription_id:
+        return None
+    return _notification_url_by_subscription_id.get(str(subscription_id))
 
 
 def setup_aoi_monitoring(
     client: SkyFiClient,
     aoi_wkt: str,
     webhook_url: str,
+    notification_url: str | None = None,
 ) -> dict[str, Any]:
     """
     Register AOI monitoring with SkyFi (POST /notifications).
     SkyFi will POST events to webhook_url when new imagery or events match the AOI.
     If this AOI (same geometry) is already registered, returns the cached subscription without calling SkyFi.
+    If notification_url is provided, we POST each incoming SkyFi event to that URL (e.g. Slack webhook).
 
     Args:
         client: SkyFi API client.
         aoi_wkt: WKT polygon (already validated by caller).
         webhook_url: Full URL where SkyFi should send notification events (must be reachable by SkyFi).
+        notification_url: Optional URL we POST SkyFi events to (e.g. Slack, Zapier). Enables push notifications.
 
     Returns:
         On success: {"ok": True, "subscription_id", "message"}
@@ -48,8 +65,11 @@ def setup_aoi_monitoring(
     exact_key = aoi_module.normalize_aoi_key(aoi_wkt)
     coarse_key = aoi_module.coarse_aoi_key(aoi_wkt)
 
+    notification_url_stripped = (notification_url or "").strip()
     if exact_key is not None and exact_key in _subscription_by_aoi:
         cached = _subscription_by_aoi[exact_key]
+        if notification_url_stripped and cached.get("subscription_id"):
+            _notification_url_by_subscription_id[str(cached["subscription_id"])] = notification_url_stripped
         logger.info("AOI monitoring cache hit (exact) for key %s", exact_key[:16])
         return {
             "ok": True,
@@ -61,6 +81,8 @@ def setup_aoi_monitoring(
         }
     if coarse_key is not None and coarse_key in _subscription_by_aoi:
         cached = _subscription_by_aoi[coarse_key]
+        if notification_url_stripped and cached.get("subscription_id"):
+            _notification_url_by_subscription_id[str(cached["subscription_id"])] = notification_url_stripped
         logger.info("AOI monitoring cache hit (coarse) for key %s", coarse_key)
         return {
             "ok": True,
@@ -105,6 +127,9 @@ def setup_aoi_monitoring(
 
     message = "AOI monitoring enabled. SkyFi will POST events to your webhook URL when new imagery or updates match this area."
     result = {"ok": True, "subscription_id": subscription_id, "message": message}
+
+    if notification_url_stripped and subscription_id:
+        _notification_url_by_subscription_id[subscription_id] = notification_url_stripped
 
     entry = {"subscription_id": subscription_id, "message": message}
     if exact_key is not None:

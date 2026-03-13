@@ -19,19 +19,36 @@ _request_context: ContextVar["SkyFiRequestContext | None"] = ContextVar(
 
 @dataclass
 class SkyFiRequestContext:
-    """SkyFi API key and optional base URL for the current request."""
+    """SkyFi API key, optional base URL, and optional notification URL for the current request."""
 
     api_key: str
     base_url: str | None = None
+    notification_url: str | None = None
 
 
-def set_request_context(api_key: str | None, base_url: str | None = None) -> None:
+def set_request_context(
+    api_key: str | None,
+    base_url: str | None = None,
+    notification_url: str | None = None,
+) -> None:
     """Set the request context (called by middleware). Do not log api_key."""
-    if api_key and api_key.strip():
-        url = (base_url.strip() or None) if base_url else None
-        _request_context.set(SkyFiRequestContext(api_key=api_key.strip(), base_url=url))
+    key = (api_key or "").strip() or ""
+    url = (base_url.strip() or None) if base_url else None
+    notif_url = (notification_url.strip() or None) if notification_url else None
+    if key or notif_url:
+        _request_context.set(
+            SkyFiRequestContext(api_key=key, base_url=url, notification_url=notif_url)
+        )
     else:
         _request_context.set(None)
+
+
+def get_notification_url_from_context() -> str | None:
+    """Return the notification URL from the current request context (set by X-Skyfi-Notification-Url header), if any."""
+    ctx = _request_context.get()
+    if ctx and ctx.notification_url:
+        return ctx.notification_url
+    return None
 
 
 def clear_request_context() -> None:
@@ -46,6 +63,6 @@ def get_skyfi_client() -> SkyFiClient:
     Otherwise use env (X_SKYFI_API_KEY, SKYFI_API_BASE_URL) for single-tenant / local.
     """
     ctx = _request_context.get()
-    if ctx:
+    if ctx and ctx.api_key:
         return SkyFiClient(api_key=ctx.api_key, base_url=ctx.base_url or None)
     return SkyFiClient()

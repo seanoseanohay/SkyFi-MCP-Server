@@ -16,6 +16,7 @@ LangGraph supports connecting to MCP servers. Configure your graph/agent to use 
 
 - **MCP server URL:** `https://your-host.example.com/mcp` (or `http://localhost:8000/mcp` for local).
 - **Transport:** HTTP. The SkyFi server uses **Streamable HTTP** (session-based): the client must send `initialize` first and include the `mcp-session-id` header on all later requests. Use LangGraph’s HTTP MCP client if available so the session is managed for you.
+- **Optional headers (multi-user):** **X-Skyfi-Api-Key**, **X-Skyfi-Notification-Url**. See [integrations.md](../integrations.md).
 
 See LangGraph docs for the exact API (e.g. passing a URL or transport config when creating an MCP-backed agent).
 

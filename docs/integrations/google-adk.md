@@ -17,7 +17,7 @@ ADK supports MCP tools. Configure your agent to use a **remote** MCP server:
 - **MCP server URL:** `https://your-host.example.com/mcp` (or `http://localhost:8000/mcp` for local).
 - The SkyFi server uses **Streamable HTTP**: the client sends `initialize` first and uses the `mcp-session-id` header on subsequent requests. ADK’s MCP client should handle this; if you configure a raw URL, ensure the transport is HTTP and the session flow is supported.
 
-Refer to ADK docs for the exact config shape (e.g. a block that accepts a URL for a remote MCP server).
+Refer to ADK docs for the exact config shape (e.g. a block that accepts a URL for a remote MCP server). For multi-user or push notifications, send **X-Skyfi-Api-Key** and optionally **X-Skyfi-Notification-Url** on requests (see [integrations.md](../integrations.md)).
 
 ## Minimal example
 
