@@ -115,3 +115,7 @@ class SkyFiClient:
     def get(self, path: str, **kwargs: Any) -> requests.Response:
         """GET path (relative to base URL). Retries on 5xx."""
         return self._request("GET", path, **kwargs)
+
+    def delete(self, path: str, **kwargs: Any) -> requests.Response:
+        """DELETE path (relative to base URL). Retries on 5xx."""
+        return self._request("DELETE", path, **kwargs)

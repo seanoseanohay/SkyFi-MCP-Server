@@ -1,10 +1,11 @@
-"""Tests for Phase 5 MCP tool: setup_aoi_monitoring."""
+"""Tests for Phase 5 MCP tools: setup_aoi_monitoring, cancel_aoi_monitor."""
 
 from unittest.mock import MagicMock, patch
 
 from src.client.skyfi_client import SkyFiClient
 from src.services.notifications import clear_subscription_cache, get_notification_url
 from src.tools.setup_aoi_monitoring import setup_aoi_monitoring
+from src.tools.cancel_aoi_monitor import cancel_aoi_monitor
 
 WKT_SF = "POLYGON((-122.4194 37.7749, -122.4094 37.7749, -122.4094 37.7849, -122.4194 37.7849, -122.4194 37.7749))"
 
@@ -191,3 +192,33 @@ def test_setup_aoi_monitoring_uses_notification_url_from_header_when_no_param() 
     assert out["error"] is None
     assert out["subscription_id"] == "sub-header-notify"
     assert get_notification_url("sub-header-notify") == "https://hooks.slack.com/services/HEADER/url"
+
+
+# --- cancel_aoi_monitor tool ---
+
+
+def test_cancel_aoi_monitor_success() -> None:
+    """cancel_aoi_monitor returns message and no error when service returns ok."""
+    with patch("src.tools.cancel_aoi_monitor.get_skyfi_client") as mock_get_client:
+        mock_client = MagicMock(spec=SkyFiClient)
+        mock_client.delete.return_value = MagicMock(status_code=200, text="")
+        mock_get_client.return_value = mock_client
+
+        out = cancel_aoi_monitor(subscription_id="sub-123")
+
+    assert out["error"] is None
+    assert out["message"] is not None
+    assert "cancel" in out["message"].lower()
+
+
+def test_cancel_aoi_monitor_api_error_returns_error() -> None:
+    """cancel_aoi_monitor returns error when service returns ok False."""
+    with patch("src.tools.cancel_aoi_monitor.get_skyfi_client") as mock_get_client:
+        mock_client = MagicMock(spec=SkyFiClient)
+        mock_client.delete.return_value = MagicMock(status_code=400, text="Invalid subscription")
+        mock_get_client.return_value = mock_client
+
+        out = cancel_aoi_monitor(subscription_id="sub-bad")
+
+    assert out["error"] is not None
+    assert out["message"] is None

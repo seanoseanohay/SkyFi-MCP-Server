@@ -90,6 +90,18 @@ def test_setup_aoi_monitoring_tool_registered() -> None:
     assert result is not None
 
 
+def test_list_aoi_monitors_tool_registered() -> None:
+    """Server exposes list_aoi_monitors tool (Phase 5)."""
+    result = mcp._tool_manager._tools.get("list_aoi_monitors")
+    assert result is not None
+
+
+def test_cancel_aoi_monitor_tool_registered() -> None:
+    """Server exposes cancel_aoi_monitor tool (Phase 5)."""
+    result = mcp._tool_manager._tools.get("cancel_aoi_monitor")
+    assert result is not None
+
+
 def test_get_monitoring_events_tool_registered() -> None:
     """Server exposes get_monitoring_events tool (Phase 5)."""
     result = mcp._tool_manager._tools.get("get_monitoring_events")

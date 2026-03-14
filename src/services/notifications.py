@@ -235,3 +235,56 @@ def _list_monitors_from_cache() -> dict[str, Any]:
                 "webhook_url": None,
             })
     return {"ok": True, "monitors": monitors}
+
+
+def _remove_subscription_from_cache(subscription_id: str) -> None:
+    """Remove any cache entries and notification URL for this subscription_id."""
+    _notification_url_by_subscription_id.pop(subscription_id, None)
+    keys_to_remove = [
+        k for k, entry in _subscription_by_aoi.items()
+        if entry.get("subscription_id") == subscription_id
+    ]
+    for k in keys_to_remove:
+        _subscription_by_aoi.pop(k, None)
+
+
+def cancel_aoi_monitor(client: SkyFiClient, subscription_id: str) -> dict[str, Any]:
+    """
+    Cancel AOI monitoring for a subscription (DELETE /notifications/{id}).
+    Also clears the subscription from local cache and notification URL map.
+
+    Args:
+        client: SkyFi API client.
+        subscription_id: The subscription ID returned by setup_aoi_monitoring or list_aoi_monitors.
+
+    Returns:
+        On success: {"ok": True, "message": "..."}
+        On failure: {"ok": False, "error": "message"}
+    """
+    subscription_id = (subscription_id or "").strip()
+    if not subscription_id:
+        return {"ok": False, "error": "subscription_id is required"}
+
+    path = f"/notifications/{subscription_id}"
+    logger.info("Cancelling AOI monitor: DELETE %s", path)
+    try:
+        resp = client.delete(path)
+    except SkyFiClientError as e:
+        logger.warning("DELETE /notifications failed: %s", e)
+        return {"ok": False, "error": str(e)}
+
+    if resp.status_code in (200, 204):
+        _remove_subscription_from_cache(subscription_id)
+        return {
+            "ok": True,
+            "message": "AOI monitoring cancelled. SkyFi will no longer send events for this subscription.",
+        }
+    if resp.status_code == 404:
+        _remove_subscription_from_cache(subscription_id)
+        return {
+            "ok": True,
+            "message": "Subscription was not found on SkyFi (may already be cancelled). Local cache cleared.",
+        }
+    msg = resp.text[:500] if resp.text else f"HTTP {resp.status_code}"
+    logger.warning("DELETE /notifications returned %s: %s", resp.status_code, msg)
+    return {"ok": False, "error": f"Notifications API error: {msg}"}

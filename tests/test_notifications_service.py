@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 from src.client.skyfi_client import SkyFiClient, SkyFiClientError
 from src.services.notifications import (
+    cancel_aoi_monitor as service_cancel_aoi_monitor,
     clear_subscription_cache,
     get_notification_url,
     list_aoi_monitors as service_list_aoi_monitors,
@@ -298,4 +299,101 @@ def test_list_aoi_monitors_4xx_returns_error() -> None:
     assert out["ok"] is False
     assert "monitors" in out
     assert out["monitors"] == []
+    assert "error" in out
+
+
+# --- cancel_aoi_monitor ---
+
+
+def test_cancel_aoi_monitor_requires_subscription_id() -> None:
+    """Empty subscription_id returns error and does not call API."""
+    client = MagicMock(spec=SkyFiClient)
+    out = service_cancel_aoi_monitor(client, "")
+    assert out["ok"] is False
+    assert "subscription_id" in out["error"].lower() or "required" in out["error"].lower()
+    client.delete.assert_not_called()
+
+
+def test_cancel_aoi_monitor_success_200_clears_cache() -> None:
+    """DELETE 200 returns ok and clears subscription from cache."""
+    clear_subscription_cache()
+    mock_post = MagicMock()
+    mock_post.status_code = 200
+    mock_post.json.return_value = {"subscriptionId": "sub-to-cancel"}
+    mock_post.text = "{}"
+    client = MagicMock(spec=SkyFiClient)
+    client.post.return_value = mock_post
+    service_setup_aoi_monitoring(
+        client, WKT_SMALL, "https://example.com/hook", notification_url="https://customer.com/notify"
+    )
+    assert get_notification_url("sub-to-cancel") == "https://customer.com/notify"
+
+    mock_del = MagicMock()
+    mock_del.status_code = 200
+    mock_del.text = ""
+    client.delete.return_value = mock_del
+
+    out = service_cancel_aoi_monitor(client, "sub-to-cancel")
+    assert out["ok"] is True
+    assert "cancelled" in out.get("message", "").lower()
+    client.delete.assert_called_once_with("/notifications/sub-to-cancel")
+    assert get_notification_url("sub-to-cancel") is None
+
+
+def test_cancel_aoi_monitor_success_204() -> None:
+    """DELETE 204 returns ok."""
+    client = MagicMock(spec=SkyFiClient)
+    mock_del = MagicMock()
+    mock_del.status_code = 204
+    mock_del.text = ""
+    client.delete.return_value = mock_del
+
+    out = service_cancel_aoi_monitor(client, "sub-any")
+    assert out["ok"] is True
+    client.delete.assert_called_once_with("/notifications/sub-any")
+
+
+def test_cancel_aoi_monitor_404_clears_cache_and_returns_ok() -> None:
+    """DELETE 404 (already gone) clears local cache and returns ok."""
+    clear_subscription_cache()
+    mock_post = MagicMock()
+    mock_post.status_code = 200
+    mock_post.json.return_value = {"subscriptionId": "sub-404"}
+    mock_post.text = "{}"
+    client = MagicMock(spec=SkyFiClient)
+    client.post.return_value = mock_post
+    service_setup_aoi_monitoring(client, WKT_SMALL, "https://example.com/hook")
+    assert get_notification_url("sub-404") is None
+
+    mock_del = MagicMock()
+    mock_del.status_code = 404
+    mock_del.text = "Not Found"
+    client.delete.return_value = mock_del
+
+    out = service_cancel_aoi_monitor(client, "sub-404")
+    assert out["ok"] is True
+    assert "not found" in out.get("message", "").lower() or "cancelled" in out.get("message", "").lower()
+
+
+def test_cancel_aoi_monitor_client_error_returns_error() -> None:
+    """SkyFiClientError is caught and returned as error."""
+    client = MagicMock(spec=SkyFiClient)
+    client.delete.side_effect = SkyFiClientError("Connection refused", status_code=None)
+
+    out = service_cancel_aoi_monitor(client, "sub-err")
+    assert out["ok"] is False
+    assert "Connection refused" in out["error"]
+
+
+def test_cancel_aoi_monitor_4xx_returns_error() -> None:
+    """DELETE 400 returns ok False."""
+    client = MagicMock(spec=SkyFiClient)
+    mock_del = MagicMock()
+    mock_del.status_code = 400
+    mock_del.text = "Invalid subscription"
+
+    client.delete.return_value = mock_del
+
+    out = service_cancel_aoi_monitor(client, "sub-bad")
+    assert out["ok"] is False
     assert "error" in out

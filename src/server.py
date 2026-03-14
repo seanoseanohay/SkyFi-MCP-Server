@@ -35,6 +35,7 @@ from src.tools.request_image_order import request_image_order
 from src.tools.resolve_location_to_wkt import resolve_location_to_wkt
 from src.tools.search_imagery import search_imagery
 from src.tools.setup_aoi_monitoring import setup_aoi_monitoring
+from src.tools.cancel_aoi_monitor import cancel_aoi_monitor
 
 setup_logging()
 logger = get_logger(__name__)
@@ -78,6 +79,7 @@ mcp.tool()(download_recent_orders)
 # Phase 5: monitoring
 mcp.tool()(setup_aoi_monitoring)
 mcp.tool()(list_aoi_monitors)
+mcp.tool()(cancel_aoi_monitor)
 mcp.tool()(get_monitoring_events)
 
 

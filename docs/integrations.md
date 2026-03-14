@@ -41,6 +41,8 @@ The server uses **Streamable HTTP** (MCP 2024–2025): clients send `initialize`
 - `download_order_file` — download one order's deliverable to a file path (server filesystem)  
 - `download_recent_orders` — download recent orders into a directory (server filesystem)  
 - `setup_aoi_monitoring` — register AOI + webhook  
+- `list_aoi_monitors` — list current AOI subscriptions  
+- `cancel_aoi_monitor` — cancel an AOI subscription (subscription_id from setup or list)  
 - `get_monitoring_events` — recent webhook events for agents  
 
 **Geocoding:** Use **`resolve_location_to_wkt`** with a place name (e.g. "Nairobi", "Austin, TX") to get a WKT polygon. Pass that as **`aoi_wkt`** into `search_imagery`, `check_feasibility`, `calculate_aoi_price`, or `setup_aoi_monitoring` so you can work with place names instead of raw coordinates.
