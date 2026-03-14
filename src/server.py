@@ -44,15 +44,30 @@ logger = get_logger(__name__)
 _host = os.environ.get("MCP_HOST", "0.0.0.0")
 _port = int(os.environ.get("MCP_PORT", "8000"))
 
-mcp = FastMCP(
-    "SkyFi Remote MCP Server",
-    json_response=True,
-    host=_host,
-    port=_port,
-)
+# Stateless HTTP: set MCP_STATELESS_HTTP=true for serverless/scale-out (no server-side session).
+# Default: session-based Streamable HTTP (client sends mcp-session-id after initialize).
+_stateless = os.environ.get("MCP_STATELESS_HTTP", "").lower() in ("1", "true", "yes")
 
-# Optional: stateless HTTP for production scaling (Phase 7)
-# mcp = FastMCP("SkyFi Remote MCP Server", json_response=True, stateless_http=True, host=_host, port=_port)
+try:
+    mcp = FastMCP(
+        "SkyFi Remote MCP Server",
+        json_response=True,
+        stateless_http=_stateless,
+        host=_host,
+        port=_port,
+    )
+except TypeError:
+    # Older MCP SDK may not support stateless_http
+    if _stateless:
+        get_logger(__name__).warning(
+            "MCP_STATELESS_HTTP=true not supported by this MCP SDK; using session-based mode"
+        )
+    mcp = FastMCP(
+        "SkyFi Remote MCP Server",
+        json_response=True,
+        host=_host,
+        port=_port,
+    )
 
 
 @mcp.tool()
@@ -106,8 +121,42 @@ async def metrics(_request: Request) -> Response:
     return JSONResponse(metrics_module.get_metrics())
 
 
+@mcp.custom_route("/monitoring/events", methods=["GET"])
+async def monitoring_events_http(request: Request) -> Response:
+    """
+    Return recent AOI monitoring events (same data as get_monitoring_events tool).
+    For Pulse-style: poll this at session start and inject the response into the conversation.
+    Query params: limit (1-100, default 50), clear_after (true/false, default false).
+    """
+    try:
+        limit_raw = request.query_params.get("limit", "50")
+        limit = int(limit_raw)
+    except ValueError:
+        return JSONResponse(
+            {"events": [], "count": 0, "error": "limit must be an integer"},
+            status_code=400,
+        )
+    clear_after = request.query_params.get("clear_after", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    if limit < 1 or limit > 100:
+        return JSONResponse(
+            {"events": [], "count": 0, "error": "limit must be between 1 and 100"},
+            status_code=400,
+        )
+    events = webhook_events.get_events(limit=limit, clear_after=clear_after)
+    return JSONResponse({"events": events, "count": len(events), "error": None})
+
+
 def main() -> None:
-    logger.info("Starting SkyFi MCP server at http://%s:%s/mcp", _host, _port)
+    logger.info(
+        "Starting SkyFi MCP server at http://%s:%s/mcp (stateless=%s)",
+        _host,
+        _port,
+        _stateless,
+    )
     app = mcp.streamable_http_app()
     from src.middleware.rate_limit import RateLimitMiddleware
     from src.middleware.skyfi_request_context import SkyFiRequestContextMiddleware

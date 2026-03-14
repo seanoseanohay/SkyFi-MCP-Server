@@ -30,6 +30,10 @@ MCP server for the SkyFi satellite imagery platform. AI agents can search imager
 
 **OpenStreetMap (resolve_location_to_wkt):** Use the **`resolve_location_to_wkt`** tool to turn a place name (e.g. "Nairobi", "Austin, TX") into a WKT polygon for use as `aoi_wkt` in other tools. Uses OSM Nominatim (1 req/sec, cached).
 
+**Pulse-style (proactive) AOI notifications:** Poll **GET /monitoring/events** at session start (or run **`scripts/session_start_monitoring_events.py`**) and inject the result into the conversation so the agent can say “You have new imagery for your AOIs…” See [docs/integrations.md](docs/integrations.md#aoi-monitoring-and-pulse-style-notifications-requirement-7).
+
+**Stateless HTTP:** Set **`MCP_STATELESS_HTTP=true`** to run without server-side sessions (for serverless or horizontal scaling). Default is session-based Streamable HTTP.
+
 ### Local mode vs deployed (shared) mode
 
 **Local mode:** You run the MCP server on your machine (e.g. `docker compose up` or `python -m src.server`). Set your SkyFi API key in the server environment (e.g. `X_SKYFI_API_KEY` in `.env`) or in **config/credentials.json** (see [Local credentials from JSON](#local-credentials-from-json) above). When you connect from Claude Desktop or Claude Code to `http://localhost:8000/mcp`, you can omit the `X-Skyfi-Api-Key` header—the server will use the key from env or JSON. This is ideal for a single user or development.
@@ -145,7 +149,7 @@ Phase 5 is only *really* validated when the SkyFi API accepts our `POST /notific
    curl -s -X POST http://localhost:8000/mcp -H "Content-Type: application/json" -H "Accept: application/json" -H "mcp-session-id: YOUR_SESSION_ID" \
      -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"setup_aoi_monitoring","arguments":{"aoi_wkt":"POLYGON((-122.42 37.77,-122.41 37.77,-122.41 37.78,-122.42 37.78,-122.42 37.77))"}},"id":4}'
    ```
-   A successful result includes `subscription_id`. SkyFi will POST to your webhook when new archive imagery matches the AOI; agents get those events via **get_monitoring_events** (use `clear_after: true` to consume once). To confirm subscriptions were created, use **list_aoi_monitors**. If the SkyFi website “My Areas” shows 0 items, see **docs/webhook-setup.md** (Troubleshooting). To verify you’re not doing anything wrong (same account, API vs UI behavior), use **docs/verification-aoi-ui-sync.md**.
+   A successful result includes `subscription_id`. SkyFi will POST to your webhook when new archive imagery matches the AOI; agents get those events via **get_monitoring_events** (use `clear_after: true` to consume once). To confirm subscriptions were created, use **list_aoi_monitors**. If the SkyFi website “My Areas” shows 0 items, see **docs/webhook-setup.md** (Troubleshooting). To verify you’re not doing anything wrong and to see exactly what SkyFi’s API docs say (we don’t infer undocumented behavior), use **docs/verification-aoi-ui-sync.md** and **docs/skyfi-api-notifications-source.md**.
 
 **Webhook URL for SkyFi:** Use a **public** URL that reaches this server, e.g. `https://<your-host>/webhooks/skyfi`. For local dev, run a **Cloudflare tunnel (cloudflared)** to port 8000 and set that URL in `.env`. For cloud deployment, set your app’s public URL. See **docs/webhook-setup.md** for why we use Cloudflare and for the two paths (local vs cloud).
 

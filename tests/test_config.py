@@ -19,7 +19,7 @@ def test_settings_defaults() -> None:
     """Key defaults are present."""
     assert settings.aoi_max_vertices == 500
     assert settings.aoi_max_area_sqkm == 500_000.0
-    assert settings.order_preview_ttl_seconds == 600
+    assert settings.order_preview_ttl_seconds == 1800
     assert "skyfi.com" in settings.skyfi_api_base_url
 
 

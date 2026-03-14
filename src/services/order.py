@@ -24,7 +24,7 @@ _preview_store: dict[str, dict[str, Any]] = {}
 
 
 def _ttl_seconds() -> int:
-    return getattr(settings, "order_preview_ttl_seconds", 600)
+    return getattr(settings, "order_preview_ttl_seconds", 1800)
 
 
 def _now() -> float:
@@ -185,16 +185,22 @@ def confirm_order(client: SkyFiClient, preview_id: str) -> dict[str, Any]:
     if not preview_id:
         return {"ok": False, "error": "preview_id is required"}
 
-    entry = _preview_store.pop(preview_id, None)
+    entry = _preview_store.get(preview_id)
     if not entry:
         return {
             "ok": False,
-            "error": "Preview not found or expired. Request a new order preview.",
+            "error": "Preview not found. The preview_id may be wrong, already used for a previous confirm, or from a different server session (e.g. server restarted). Request a new order preview with request_image_order.",
         }
 
     if _now() > entry["expires_at"]:
-        return {"ok": False, "error": "Preview expired. Request a new order preview."}
+        _preview_store.pop(preview_id, None)  # remove expired entry
+        return {
+            "ok": False,
+            "error": "Preview expired (valid 30 minutes by default). Request a new order preview.",
+        }
 
+    # One-time use: remove so it can't be confirmed again
+    _preview_store.pop(preview_id, None)
     order_type = entry["order_type"]
     payload = entry["payload"]
     path = "/order-archive" if order_type == "archive" else "/order-tasking"

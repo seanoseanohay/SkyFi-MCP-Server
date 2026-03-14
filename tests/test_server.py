@@ -176,3 +176,44 @@ def test_webhook_skyfi_forwards_to_customer_notification_url_when_set() -> None:
     mock_notify.assert_called_once()
     assert mock_notify.call_args[0][0] == "https://customer.example.com/notify"
     assert mock_notify.call_args[0][1] == payload
+
+
+def test_get_monitoring_events_returns_empty_when_no_events() -> None:
+    """GET /monitoring/events returns events list and count; empty when none stored."""
+    webhook_events.get_events(limit=100, clear_after=True)
+    app = mcp.streamable_http_app()
+    client = TestClient(app)
+    response = client.get("/monitoring/events")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["events"] == []
+    assert data["count"] == 0
+    assert data["error"] is None
+
+
+def test_get_monitoring_events_returns_events_after_webhook() -> None:
+    """GET /monitoring/events returns same data as get_monitoring_events tool after webhook POST."""
+    webhook_events.get_events(limit=100, clear_after=True)
+    app = mcp.streamable_http_app()
+    client = TestClient(app)
+    payload = {"subscriptionId": "sub-1", "eventType": "new_imagery"}
+    client.post("/webhooks/skyfi", json=payload)
+    response = client.get("/monitoring/events?limit=10")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] == 1
+    assert data["error"] is None
+    assert len(data["events"]) == 1
+    assert data["events"][0]["payload"] == payload
+
+
+def test_get_monitoring_events_validates_limit() -> None:
+    """GET /monitoring/events returns 400 for invalid limit."""
+    app = mcp.streamable_http_app()
+    client = TestClient(app)
+    r1 = client.get("/monitoring/events?limit=0")
+    assert r1.status_code == 400
+    r2 = client.get("/monitoring/events?limit=101")
+    assert r2.status_code == 400
+    r3 = client.get("/monitoring/events?limit=not_a_number")
+    assert r3.status_code == 400

@@ -126,8 +126,8 @@ class Settings:
     aoi_max_vertices: int = _int("AOI_MAX_VERTICES", 500)
     aoi_max_area_sqkm: float = _float("AOI_MAX_AREA_SQKM", 500_000.0)
 
-    # Order safety
-    order_preview_ttl_seconds: int = _int("ORDER_PREVIEW_TTL_SECONDS", 600)
+    # Order safety (preview valid until confirm; longer TTL helps when confirming multiple orders)
+    order_preview_ttl_seconds: int = _int("ORDER_PREVIEW_TTL_SECONDS", 1800)
 
     # Tasking AOI area (SkyFi typical range 25–500 sq km)
     tasking_min_area_sqkm: float = _float("TASKING_MIN_AREA_SQKM", 25.0)

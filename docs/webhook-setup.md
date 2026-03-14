@@ -95,21 +95,23 @@ After subscriptions are registered, **delivery depends on SkyFi’s notification
 
 If you use `setup_aoi_monitoring` and get a success response but **don’t see any AOIs on SkyFi’s website** (e.g. “My Areas” shows “0 items”):
 
-1. **Same account**  
-   The SkyFi web app is tied to your **browser login**. Our MCP uses **`X-Skyfi-Api-Key`** (from `.env` or the request header). Notifications created via the API are associated with the **owner of that API key**. If the key in your `.env` (or sent by your MCP client) is for a different SkyFi account than the one you’re logged into in the browser, the website will not show those API-created subscriptions. **Fix:** Use an API key from the same SkyFi account you use to log in at [app.skyfi.com](https://app.skyfi.com). You can create/view keys under your account settings.
+**Important:** SkyFi’s API documentation does **not** describe how the web UI or “My Areas” works, or whether API-created notifications appear there. The following is based on what the API docs *do* say and on practical verification steps. For authoritative answers about web UI behavior, contact [api@skyfi.com](mailto:api@skyfi.com). See **[skyfi-api-notifications-source.md](skyfi-api-notifications-source.md)** for exactly what SkyFi’s docs state.
 
-2. **“My Areas” vs API notifications**  
-   The SkyFi web UI “My Areas” may show only AOIs that were **added in the browser** (e.g. “Watch an AOI”, “Upload AOI file”). Subscriptions created via the **Platform API** (`POST /notifications`) might appear in a different section of the app or only when listed via the API. **Verify:** Call the **`list_aoi_monitors`** MCP tool (or `GET /notifications` with your API key). If your subscriptions appear there, they were created correctly; the website may simply not surface them in “My Areas”.
+1. **Verify subscriptions via the API (what SkyFi documents)**  
+   SkyFi’s API states that GET /notifications returns “List all currently active **customer** notifications” for the API key you use. So:
+   - After `setup_aoi_monitoring`, call **`list_aoi_monitors`** (or `GET /notifications` with your API key). If the new subscription appears there, SkyFi has accepted it for the customer associated with that key.
+   - Run the Phase 0 script with `SKYFI_WEBHOOK_BASE_URL` set: `python phase0/validate_skyfi_api.py`. Check **Test 5 — POST /notifications** for 2xx and a subscription id.
 
-3. **Confirm the API call succeeds**  
-   - Run the Phase 0 script with `SKYFI_WEBHOOK_BASE_URL` set:  
-     `python phase0/validate_skyfi_api.py`  
-     Check **Test 5 — POST /notifications** for 2xx and a subscription id.  
-   - After calling `setup_aoi_monitoring`, call **`list_aoi_monitors`**. If the new subscription appears, SkyFi has it; the missing display is likely a web UI vs API difference or account mismatch.
-   - For a **staff-engineer-grade checklist** (same account, curl verification, GET vs UI behavior), see **[verification-aoi-ui-sync.md](verification-aoi-ui-sync.md)**.
+2. **API key and account**  
+   SkyFi’s docs say API keys are “available to all SkyFi accounts” and “can be found in the My Profile section at [app.skyfi.com](https://app.skyfi.com)”. Notifications created via POST /notifications return an `ownerId` (the notification is associated with that owner). We do not infer from their docs whether the website shows the same set as GET /notifications. If you expect the website to show your subscriptions, ensure the API key you use is from the account you use to log in at app.skyfi.com; if the discrepancy persists, confirm with SkyFi.
+
+3. **Website vs API display**  
+   SkyFi’s API documentation does **not** state that “My Areas” shows only browser-created AOIs or that API-created notifications appear only in the API. If your subscriptions appear in `list_aoi_monitors` (GET /notifications) but not on the website, that is **not** explained in their API docs—treat it as observed behavior and confirm with SkyFi if you need the official explanation.
 
 4. **Webhook URL must be public**  
    If SkyFi cannot reach your webhook URL (e.g. localhost, or tunnel down), they may reject or limit the subscription. Set `SKYFI_WEBHOOK_BASE_URL` to a **public** URL (e.g. Cloudflare tunnel or your deployed app). See [Local: manual tunnel](#local-manual-tunnel-today) above.
+
+For a staff-engineer-grade checklist (curl verification, GET response shape), see **[verification-aoi-ui-sync.md](verification-aoi-ui-sync.md)**.
 
 ---
 

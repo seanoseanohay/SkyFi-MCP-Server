@@ -1,6 +1,8 @@
 # AOI / SkyFi UI Sync Verification (Staff-Engineer Checklist)
 
-This doc helps you verify that AOI notification requests and listings are correct, and whether the SkyFi web UI is expected to show the same data as the API. **Use it to confirm you are not doing anything wrong** before assuming a bug on either side.
+This doc helps you verify that AOI notification requests and listings are correct. **Use it to confirm you are not doing anything wrong** before assuming a bug on either side.
+
+**Important:** SkyFi’s API documentation does not describe the web UI or “My Areas.” What we can verify authoritatively is API behavior (POST/GET /notifications). For what the API docs actually say, see **[skyfi-api-notifications-source.md](skyfi-api-notifications-source.md)**. For web UI behavior, confirm with SkyFi ([api@skyfi.com](mailto:api@skyfi.com)).
 
 ---
 
@@ -31,7 +33,7 @@ curl -s -w "\nHTTP_CODE:%{http_code}\n" -X POST "$BASE/notifications" \
   -d "{\"aoi\": \"POLYGON((-122.42 37.77,-122.41 37.77,-122.41 37.78,-122.42 37.78,-122.42 37.77))\", \"webhookUrl\": \"$WEBHOOK_URL\"}"
 ```
 
-If you get 2xx and a body with `id` or `subscriptionId`, SkyFi accepted the subscription for **the account that owns that API key**.
+If you get 2xx and a body with `id` or `subscriptionId`, SkyFi accepted the subscription. Their API response includes `ownerId` (the notification is associated with that owner); the docs do not state how this relates to the web UI.
 
 ### GET /notifications (list AOI monitors)
 
@@ -56,44 +58,33 @@ curl -s -w "\nHTTP_CODE:%{http_code}\n" "$BASE/notifications" \
   -H "Accept: application/json"
 ```
 
-- If you get **200** and a non-empty array: those are the subscriptions **for this API key**. Compare this list to what you see in the SkyFi UI.
-- If you get **404** or **501**: the Platform API may not support listing via GET; our server then falls back to a **local cache** of subscriptions created in this server process only (so GUI-created AOIs will not appear in `list_aoi_monitors`).
+- If you get **200** and a non-empty array: SkyFi’s docs call this “List all currently active customer notifications” for the authenticated customer. Compare this list to what you see in the SkyFi web app if you wish; their API docs do not state whether the web UI shows the same set.
+- If you get **404** or **501**: the Platform API may not support listing via GET in your environment; our server then falls back to a **local cache** of subscriptions created in this server process only (so GUI-created AOIs will not appear in `list_aoi_monitors`).
 
 ---
 
-## 2. Same Account (Critical)
+## 2. Same account (API key and owner)
 
-The SkyFi **web UI** is tied to your **browser login**. The **Platform API** is tied to the **API key** you send.
-
-- Notifications created via **POST /notifications** (or our `setup_aoi_monitoring`) are associated with the **owner of that API key**.
-- If the API key in your `.env` (or sent by your MCP client) is for a **different SkyFi account** than the one you’re logged into in the browser, the website will **not** show those API-created subscriptions in “My Areas” (or may show a different set).
+SkyFi’s API docs say: API keys are “available to all SkyFi accounts” and “can be found in the My Profile section at [app.skyfi.com](https://app.skyfi.com)”. The notification response includes `ownerId`; GET /notifications returns “customer’s active notifications” for the authenticated customer. The API docs do **not** state how the website login relates to that “customer” or whether the web UI shows the same notifications.
 
 **Checklist:**
 
-1. Log in at [app.skyfi.com](https://app.skyfi.com).
-2. Open account/settings and find **API keys**.
-3. Confirm that `X_SKYFI_API_KEY` (or the key you send in `X-Skyfi-Api-Key`) is **from this same account**. If you have multiple keys, note which one the MCP server uses.
-4. Create an AOI via the API (curl or MCP), then call GET /notifications with the **same** key. If the new subscription appears in the GET response, the API is behaving correctly for that account.
+1. Log in at [app.skyfi.com](https://app.skyfi.com) and open account/settings → **API keys**.
+2. Confirm that `X_SKYFI_API_KEY` (or the key you send in `X-Skyfi-Api-Key`) is from the account you care about. If you expect the website to show the same data, use a key from the same account you use in the browser; the API docs do not guarantee the website displays API-created notifications.
+3. Create an AOI via the API (curl or MCP), then call GET /notifications with the **same** key. If the new subscription appears in the GET response, the API has accepted it for that customer.
 
 ---
 
-## 3. “My Areas” vs API (Known SkyFi Behavior)
+## 3. “My Areas” vs API (what we can and cannot say)
 
-From our testing and docs:
+**What SkyFi’s API docs say:** GET /notifications returns “List all currently active customer notifications” for the API key. They do **not** document “My Areas,” the web UI, or whether API-created notifications appear on the website.
 
-- The SkyFi web UI **“My Areas”** may show only AOIs that were **added in the browser** (e.g. “Watch an AOI”, “Upload AOI file”).
-- Subscriptions created via the **Platform API** (`POST /notifications`) might:
-  - appear in a **different section** of the app, or
-  - **only** be visible when listed via the API (GET /notifications or `list_aoi_monitors`).
+**What you can verify:**
 
-So **not seeing API-created AOIs in “My Areas”** can be expected. It does not necessarily mean you did something wrong.
+1. After `setup_aoi_monitoring` (or curl POST), call **`list_aoi_monitors`** (or GET /notifications with the same key). If the new subscription appears there, SkyFi has accepted it; their API docs do not explain whether or why it might not appear in the web UI.
+2. If you create an AOI in the SkyFi web app, then call GET /notifications (or `list_aoi_monitors`): if GET returns 200 and includes that AOI, the API is returning it for that key. If GET does not include it, the API may be returning only a subset (e.g. API-created only)—SkyFi’s docs do not specify this; confirm with SkyFi if needed.
 
-**Verify:**
-
-1. After `setup_aoi_monitoring` (or curl POST), call **`list_aoi_monitors`** (or GET /notifications with the same key). If the new subscription appears there, it was created correctly; the missing display may be a **web UI vs API** difference.
-2. If you create an AOI **in the SkyFi GUI**, then call GET /notifications (or `list_aoi_monitors`):  
-   - If GET returns 200 and includes that AOI, the API and UI are in sync for this account.  
-   - If GET returns 200 but the list doesn’t include GUI-created AOIs, SkyFi may be exposing **only API-created** subscriptions on GET /notifications (UI-created might be a different backend bucket). That would be a SkyFi product/API design question, not an MCP bug.
+**If you observe:** API-created subscriptions not appearing in “My Areas,” or the website showing a different set than GET /notifications—that behavior is **not** described in SkyFi’s API documentation. Treat it as observed behavior; for an authoritative explanation, contact [api@skyfi.com](mailto:api@skyfi.com).
 
 ---
 
@@ -121,7 +112,7 @@ This gives you **evidence** of what SkyFi returns, not assumptions.
 | POST succeeds | curl POST /notifications (or MCP) returns 2xx and an id/subscriptionId. |
 | GET returns list | curl GET /notifications returns 200 and a list; inspect `samples/notifications_list_*.json` after Phase 0. |
 | list_aoi_monitors | After creating via API, `list_aoi_monitors` shows the new subscription (if GET is supported and we don’t fall back to cache). |
-| UI vs API | If API-created AOIs don’t appear in “My Areas”, confirm with GET /notifications that they exist for your key; this may be expected UI behavior. |
-| GUI-created in API | If GUI-created AOIs don’t appear in GET /notifications, SkyFi may list only API-created subscriptions; not something we can fix in MCP. |
+| UI vs API | If API-created AOIs don’t appear in “My Areas”, confirm with GET /notifications that they exist for your key. SkyFi’s API docs do not describe web UI behavior; confirm with SkyFi for the authoritative answer. |
+| GUI-created in API | If GUI-created AOIs don’t appear in GET /notifications, the API may return only a subset; SkyFi’s docs do not specify this. Contact SkyFi if you need to rely on that behavior. |
 
 If all of the above are verified and you still have a concrete mismatch (e.g. GET returns an id that the UI shows under a different account), the next step is to share the **exact** GET response shape (redact ids if needed) and which account/key the UI is using, so we can distinguish our parsing from SkyFi’s API/UI contract.

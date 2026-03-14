@@ -1,34 +1,169 @@
-# SkyFi MCP with Google ADK (Agent Development Kit)
+# Google ADK MCP Setup Guide
+### Agent Development Kit — MCP Configuration & Authentication
 
-Use the SkyFi MCP server with [Google’s Agent Development Kit (ADK)](https://google.github.io/adk-docs/tools/mcp-tools/) and its MCP tools integration.
+---
 
-## Setup
+## Overview
 
-1. **Run the SkyFi MCP server** at a URL reachable by your ADK app:
-   - Local: `docker compose up --build` → `http://localhost:8000/mcp`
-   - Production: e.g. `https://your-host.example.com/mcp`
+Google's Agent Development Kit (ADK) is an open-source, code-first framework for building, testing, and deploying AI agents. It has first-class support for the Model Context Protocol (MCP), allowing ADK agents to act as MCP clients and consume tools from any MCP-compliant server.
 
-2. **Server credentials:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` via env (see [.env.example](../../.env.example)) or **config/credentials.json** (see [README](../../README.md)).
+ADK supports two primary connection types: **stdio** (local process) and **SSE / Streamable HTTP** (remote server). API keys and credentials are passed via environment variables injected into the MCP server process.
 
-## Configuration
+---
 
-ADK supports MCP tools. Configure your agent to use a **remote** MCP server:
+## Prerequisites
 
-- **MCP server URL:** `https://your-host.example.com/mcp` (or `http://localhost:8000/mcp` for local).
-- The SkyFi server uses **Streamable HTTP**: the client sends `initialize` first and uses the `mcp-session-id` header on subsequent requests. ADK’s MCP client should handle this; if you configure a raw URL, ensure the transport is HTTP and the session flow is supported.
+- Python 3.9+
+- Node.js 18+ and `npx` (for stdio-based MCP servers)
+- A Google Cloud project (for Gemini models)
+- A Google AI Studio or Vertex AI API key
 
-Refer to ADK docs for the exact config shape (e.g. a block that accepts a URL for a remote MCP server). For multi-user or push notifications, send **X-Skyfi-Api-Key** and optionally **X-Skyfi-Notification-Url** on requests (see [integrations.md](../integrations.md)).
+---
 
-## Minimal example
+## Installation
 
-1. Start the SkyFi server (local or deployed).
-2. In your ADK project, add the SkyFi MCP server URL to the agent’s MCP tools configuration.
-3. Run the agent and prompt it to use SkyFi, e.g. “Search for satellite imagery over Berlin” or “Get a price for this AOI.”
+```bash
+pip install google-adk
+```
 
-The agent will call `tools/list` and then `tools/call` for the appropriate tools. For ordering, the server returns a preview; only after human confirmation should the agent call `confirm_image_order` with the `preview_id`.
+For Google Cloud-managed tooling (e.g., BigQuery, Maps):
 
-## References
+```bash
+pip install google-adk[toolbox]
+```
 
-- [Google ADK: MCP tools](https://google.github.io/adk-docs/tools/mcp-tools/)
-- [SkyFi MCP README](../../README.md)
-- [Integrations index](../integrations.md)
+---
+
+## API Key Setup
+
+ADK uses Gemini models by default. Set your API key as an environment variable:
+
+```bash
+export GOOGLE_API_KEY="your-google-api-key"
+```
+
+For Vertex AI instead of AI Studio:
+
+```bash
+export GOOGLE_CLOUD_PROJECT="your-project-id"
+export GOOGLE_CLOUD_LOCATION="us-central1"
+```
+
+Store these in a `.env` file for local development — never hardcode them in agent files.
+
+---
+
+## Connecting to an MCP Server
+
+### Option 1: stdio (Local MCP Server)
+
+Use `StdioConnectionParams` for servers that run as a local process. API keys for the MCP server are passed in the `env` dict:
+
+```python
+import os
+from google.adk.agents import LlmAgent
+from google.adk.tools.mcp_tool import McpToolset
+from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
+from mcp import StdioServerParameters
+
+my_api_key = os.environ.get("MY_SERVICE_API_KEY")
+
+root_agent = LlmAgent(
+    model="gemini-2.0-flash",
+    name="my_agent",
+    instruction="Help the user using available tools.",
+    tools=[
+        McpToolset(
+            connection_params=StdioConnectionParams(
+                server_params=StdioServerParameters(
+                    command="npx",
+                    args=["-y", "@my-org/my-mcp-server"],
+                    env={
+                        "MY_SERVICE_API_KEY": my_api_key
+                    }
+                )
+            )
+        )
+    ]
+)
+```
+
+### Option 2: SSE / Streamable HTTP (Remote MCP Server)
+
+Use `SseConnectionParams` or `StreamableHTTPServerParams` for remote servers. Authentication headers are passed via `transportOptions`:
+
+```python
+from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPServerParams
+
+root_agent = LlmAgent(
+    model="gemini-2.0-flash",
+    name="my_agent",
+    instruction="Help the user using available tools.",
+    tools=[
+        McpToolset(
+            connection_params=StreamableHTTPServerParams(
+                url="https://my-mcp-server.example.com/mcp",
+                transportOptions={
+                    "requestInit": {
+                        "headers": {
+                            "Authorization": f"Bearer {os.environ.get('MY_API_TOKEN')}"
+                        }
+                    }
+                }
+            )
+        )
+    ]
+)
+```
+
+---
+
+## Running Your Agent
+
+Launch the ADK developer UI to test your agent locally:
+
+```bash
+adk web
+```
+
+Then navigate to `http://localhost:8000` and select your agent. You can verify MCP tools are connected by checking the tool list.
+
+---
+
+## Filtering Tools (Optional)
+
+To expose only a subset of tools from an MCP server, use the `tool_filter` parameter:
+
+```python
+McpToolset(
+    connection_params=...,
+    tool_filter=["get_directions", "find_place"]
+)
+```
+
+---
+
+## Environment Variable Best Practices
+
+- Store all secrets in a `.env` file and load with `python-dotenv`
+- Never commit API keys to version control
+- For Cloud Run / Vertex AI deployments, use Google Cloud Secret Manager or environment variables set at deploy time
+
+```bash
+pip install python-dotenv
+```
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+```
+
+---
+
+## Quick Reference
+
+| Connection Type | Class | Use Case |
+|---|---|---|
+| Local process | `StdioConnectionParams` | stdio MCP servers via `npx` or `python` |
+| Remote server | `StreamableHTTPServerParams` | Hosted MCP servers over HTTP |
+| Remote server (legacy) | `SseConnectionParams` | SSE-based remote MCP servers |

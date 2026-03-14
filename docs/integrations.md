@@ -23,7 +23,7 @@ The SkyFi Remote MCP Server exposes satellite imagery capabilities as MCP tools.
 
 **Multi-user / shared deployment:** When the server is deployed for multiple users (e.g. behind Cloudflare), each client must send their SkyFi API key on every request. Configure your client to add the header **`X-Skyfi-Api-Key`** with your SkyFi API key. Optional headers: **`X-Skyfi-Api-Base-Url`** to override the API base URL; **`X-Skyfi-Notification-Url`** to set the URL where the server will POST SkyFi AOI events (e.g. Slack webhook) for your subscriptions—no server env needed. If headers are missing, the server falls back to env vars (single-tenant). For Claude Desktop, see [anthropic-claude-code.md](integrations/anthropic-claude-code.md) for the exact `npx mcp-remote` + `--header` config.
 
-The server uses **Streamable HTTP** (MCP 2024–2025): clients send `initialize` first, then use the returned `mcp-session-id` header on subsequent requests. Provider-specific guides below assume the host handles this session flow.
+The server uses **Streamable HTTP** (MCP 2024–2025): clients send `initialize` first, then use the returned `mcp-session-id` header on subsequent requests. Provider-specific guides below assume the host handles this session flow. **Stateless HTTP:** Set **`MCP_STATELESS_HTTP=true`** to run without server-side sessions (for serverless or horizontal scaling); default is session-based.
 
 ## Available tools
 
@@ -48,3 +48,25 @@ The server uses **Streamable HTTP** (MCP 2024–2025): clients send `initialize`
 **Geocoding:** Use **`resolve_location_to_wkt`** with a place name (e.g. "Nairobi", "Austin, TX") to get a WKT polygon. Pass that as **`aoi_wkt`** into `search_imagery`, `check_feasibility`, `calculate_aoi_price`, or `setup_aoi_monitoring` so you can work with place names instead of raw coordinates.
 
 For full tool schemas and behavior, see the [PRD](skyfi_mcp_prd_v2_3.md) and the main [README](../README.md).
+
+## AOI monitoring and “Pulse-style” notifications (requirement 7)
+
+The product goal is: **conversationally set up AOI monitoring and have the agent conversationally inform the user when their AOI has new images** (e.g. like an item in ChatGPT Pulse).
+
+**What the MCP server provides:**
+
+- **Conversational setup:** The user says e.g. “Monitor Austin for new imagery”; the agent calls `setup_aoi_monitoring` with the AOI (and optional `notification_url`). Webhook is integrated: SkyFi POSTs to our `/webhooks/skyfi` when new imagery matches the AOI; we store events and optionally forward to `notification_url` (e.g. Slack).
+- **Data for informing the user:** Events are exposed to the agent via **`get_monitoring_events`**. The agent can then say e.g. “We have new imagery for your AOI. Would you like to buy it?”
+
+**Two ways the user gets informed:**
+
+1. **Reactive (fully supported today):** The user asks “Do I have any new imagery for my AOIs?” (or “Any updates on my monitored areas?”). The agent calls `get_monitoring_events` and conversationally informs the user. No host changes required.
+2. **Proactive / Pulse-style:** The **host** (Claude Desktop, ChatGPT, custom UI) polls `get_monitoring_events` at **session start** or on a **schedule**, then either injects the events into the conversation context or shows a separate notification (e.g. Pulse-style item). The agent can then open with “You have 2 new imagery events for your AOIs…” without the user asking. The MCP server does not push to the client; the host is responsible for polling and surfacing. Integrators who want Pulse-like behavior should implement this polling and context/UI surfacing in their host.
+
+**How to achieve Pulse-style (proactive):**
+
+- **Option 1 — HTTP:** Poll **GET /monitoring/events?limit=50** at session start (no MCP session required). Inject the JSON or a short summary into the conversation as system/context so the agent can open with “You have new imagery for your AOIs…”
+- **Option 2 — Reference script:** Run **`python scripts/session_start_monitoring_events.py`** at session start (or on a schedule). It prints a ready-to-inject paragraph; add its stdout to the conversation context. Use env **`SKYFI_MCP_URL`** (and optionally **`X_SKYFI_API_KEY`**) for your server URL and key.
+- **Option 3 — MCP tool:** Have the host call the **`get_monitoring_events`** tool at session start and inject the result into context.
+
+**Summary:** Conversational setup and webhook integration are implemented. The agent *can* conversationally inform the user (reactive path works out of the box). Proactive, Pulse-style “item in the UI” behavior depends on the host adding polling and surfacing; the server provides the data via `get_monitoring_events` and **GET /monitoring/events**.

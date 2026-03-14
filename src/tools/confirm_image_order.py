@@ -13,7 +13,7 @@ def confirm_image_order(preview_id: str) -> dict[str, Any]:
     Execute an order that was previewed with request_image_order. Call only after human confirmation.
 
     Args:
-        preview_id: The preview_id returned by request_image_order (valid for 10 minutes by default).
+        preview_id: The preview_id returned by request_image_order (valid 30 minutes by default; set ORDER_PREVIEW_TTL_SECONDS to extend).
 
     Returns:
         Dict with order_id, status, message; or error (e.g. preview expired or not found).
