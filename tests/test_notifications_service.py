@@ -5,9 +5,15 @@ from unittest.mock import MagicMock
 from src.client.skyfi_client import SkyFiClient, SkyFiClientError
 from src.services.notifications import (
     cancel_aoi_monitor as service_cancel_aoi_monitor,
+)
+from src.services.notifications import (
     clear_subscription_cache,
     get_notification_url,
+)
+from src.services.notifications import (
     list_aoi_monitors as service_list_aoi_monitors,
+)
+from src.services.notifications import (
     setup_aoi_monitoring as service_setup_aoi_monitoring,
 )
 
@@ -86,7 +92,10 @@ def test_setup_aoi_monitoring_cache_hit_updates_notification_url() -> None:
     assert get_notification_url("sub-cached") is None
 
     service_setup_aoi_monitoring(
-        client, WKT_SMALL, "https://example.com/hook", notification_url="https://new-url.com/notify"
+        client,
+        WKT_SMALL,
+        "https://example.com/hook",
+        notification_url="https://new-url.com/notify",
     )
     assert get_notification_url("sub-cached") == "https://new-url.com/notify"
     client.post.assert_called_once()
@@ -102,7 +111,10 @@ def test_clear_subscription_cache_clears_notification_urls() -> None:
     client = MagicMock(spec=SkyFiClient)
     client.post.return_value = mock_resp
     service_setup_aoi_monitoring(
-        client, WKT_SMALL, "https://example.com/hook", notification_url="https://clear.me"
+        client,
+        WKT_SMALL,
+        "https://example.com/hook",
+        notification_url="https://clear.me",
     )
     assert get_notification_url("sub-clear") == "https://clear.me"
     clear_subscription_cache()
@@ -186,7 +198,9 @@ def test_setup_aoi_monitoring_same_aoi_cached_second_call_does_not_call_skyfi() 
 WKT_NEARBY = "POLYGON((-122.415 37.777, -122.413 37.777, -122.413 37.783, -122.415 37.783, -122.415 37.777))"
 
 
-def test_setup_aoi_monitoring_same_neighborhood_coarse_cache_second_call_does_not_call_skyfi() -> None:
+def test_setup_aoi_monitoring_same_neighborhood_coarse_cache_second_call_does_not_call_skyfi() -> (
+    None
+):
     """Two requests for different AOIs in the same neighborhood (coarse key) result in one SkyFi POST."""
     clear_subscription_cache()
     mock_resp = MagicMock()
@@ -214,7 +228,11 @@ def test_list_aoi_monitors_success_returns_monitors() -> None:
     mock_resp.status_code = 200
     mock_resp.json.return_value = {
         "notifications": [
-            {"subscriptionId": "sub-1", "aoi": "POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))", "webhookUrl": "https://example.com/hook"},
+            {
+                "subscriptionId": "sub-1",
+                "aoi": "POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))",
+                "webhookUrl": "https://example.com/hook",
+            },
             {"id": "sub-2", "aoi": "POLYGON((2 2, 3 2, 3 3, 2 3, 2 2))"},
         ],
     }
@@ -310,7 +328,9 @@ def test_cancel_aoi_monitor_requires_subscription_id() -> None:
     client = MagicMock(spec=SkyFiClient)
     out = service_cancel_aoi_monitor(client, "")
     assert out["ok"] is False
-    assert "subscription_id" in out["error"].lower() or "required" in out["error"].lower()
+    assert (
+        "subscription_id" in out["error"].lower() or "required" in out["error"].lower()
+    )
     client.delete.assert_not_called()
 
 
@@ -324,7 +344,10 @@ def test_cancel_aoi_monitor_success_200_clears_cache() -> None:
     client = MagicMock(spec=SkyFiClient)
     client.post.return_value = mock_post
     service_setup_aoi_monitoring(
-        client, WKT_SMALL, "https://example.com/hook", notification_url="https://customer.com/notify"
+        client,
+        WKT_SMALL,
+        "https://example.com/hook",
+        notification_url="https://customer.com/notify",
     )
     assert get_notification_url("sub-to-cancel") == "https://customer.com/notify"
 
@@ -372,7 +395,10 @@ def test_cancel_aoi_monitor_404_clears_cache_and_returns_ok() -> None:
 
     out = service_cancel_aoi_monitor(client, "sub-404")
     assert out["ok"] is True
-    assert "not found" in out.get("message", "").lower() or "cancelled" in out.get("message", "").lower()
+    assert (
+        "not found" in out.get("message", "").lower()
+        or "cancelled" in out.get("message", "").lower()
+    )
 
 
 def test_cancel_aoi_monitor_client_error_returns_error() -> None:

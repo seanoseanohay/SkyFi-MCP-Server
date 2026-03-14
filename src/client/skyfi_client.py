@@ -62,7 +62,11 @@ class SkyFiClient:
         json: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> requests.Response:
-        url = f"{self.base_url}{path}" if path.startswith("/") else f"{self.base_url}/{path}"
+        url = (
+            f"{self.base_url}{path}"
+            if path.startswith("/")
+            else f"{self.base_url}/{path}"
+        )
         timeout = kwargs.pop("timeout", self.timeout)
         last_exc: Exception | None = None
 
@@ -77,12 +81,19 @@ class SkyFiClient:
                 )
             except requests.RequestException as e:
                 last_exc = e
-                logger.warning("Request failed (attempt %s/%s): %s", attempt + 1, self.max_retries + 1, e)
+                logger.warning(
+                    "Request failed (attempt %s/%s): %s",
+                    attempt + 1,
+                    self.max_retries + 1,
+                    e,
+                )
                 if attempt < self.max_retries:
-                    sleep = 2 ** attempt
+                    sleep = 2**attempt
                     time.sleep(sleep)
                 else:
-                    raise SkyFiClientError(f"Request failed after {self.max_retries + 1} attempts: {e}") from e
+                    raise SkyFiClientError(
+                        f"Request failed after {self.max_retries + 1} attempts: {e}"
+                    ) from e
 
             # Retry only on 5xx
             if 500 <= resp.status_code < 600:
@@ -99,7 +110,7 @@ class SkyFiClient:
                     resp.text[:200],
                 )
                 if attempt < self.max_retries:
-                    sleep = 2 ** attempt
+                    sleep = 2**attempt
                     time.sleep(sleep)
                 else:
                     raise last_exc
@@ -108,7 +119,9 @@ class SkyFiClient:
 
         raise last_exc or SkyFiClientError("Request failed")
 
-    def post(self, path: str, json: dict[str, Any] | None = None, **kwargs: Any) -> requests.Response:
+    def post(
+        self, path: str, json: dict[str, Any] | None = None, **kwargs: Any
+    ) -> requests.Response:
         """POST to path (relative to base URL). Retries on 5xx."""
         return self._request("POST", path, json=json, **kwargs)
 

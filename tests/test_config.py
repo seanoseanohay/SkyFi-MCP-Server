@@ -1,10 +1,7 @@
 """Tests for config and settings."""
 
-import os
-
 import pytest
-
-from src.config import Settings, settings, setup_logging
+from src.config import settings, setup_logging
 
 
 def test_settings_load_from_env(monkeypatch: pytest.MonkeyPatch) -> None:

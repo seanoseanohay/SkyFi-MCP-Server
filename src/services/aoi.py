@@ -59,7 +59,10 @@ def validate_aoi(wkt: str) -> dict[str, Any]:
         return {"ok": False, "error": "AOI geometry is empty"}
 
     if geom.geom_type not in ("Polygon", "MultiPolygon"):
-        return {"ok": False, "error": f"AOI must be a Polygon or MultiPolygon, got {geom.geom_type}"}
+        return {
+            "ok": False,
+            "error": f"AOI must be a Polygon or MultiPolygon, got {geom.geom_type}",
+        }
 
     # Vertex count (exterior + interiors)
     if geom.geom_type == "Polygon":

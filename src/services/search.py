@@ -50,7 +50,11 @@ def search_archives(
     if resp.status_code != 200:
         msg = resp.text[:500] if resp.text else f"HTTP {resp.status_code}"
         logger.warning("Archives returned %s: %s", resp.status_code, msg)
-        return {"results": None, "nextPage": None, "error": f"Archives API error: {msg}"}
+        return {
+            "results": None,
+            "nextPage": None,
+            "error": f"Archives API error: {msg}",
+        }
 
     data = resp.json()
 

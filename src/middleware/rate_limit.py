@@ -5,8 +5,8 @@ When limit is 0 (default for self-hosted), no limiting is applied—see docs/obs
 Returns 429 when exceeded and increments metrics.rate_limit_exceeded_total.
 """
 
-import time
 import threading
+import time
 from collections import defaultdict
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -48,6 +48,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             if len(timestamps) >= limit:
                 try:
                     from src.services import metrics as metrics_module
+
                     metrics_module.inc_rate_limit_exceeded()
                 except Exception:
                     pass

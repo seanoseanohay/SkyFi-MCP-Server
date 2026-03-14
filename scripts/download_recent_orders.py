@@ -42,12 +42,7 @@ def _sanitize_filename(s: str) -> str:
 
 def _order_code(order: dict) -> str:
     """Short label for an order (for filenames)."""
-    return (
-        order.get("code")
-        or order.get("orderId")
-        or order.get("id")
-        or "order"
-    )
+    return order.get("code") or order.get("orderId") or order.get("id") or "order"
 
 
 def main() -> int:
@@ -125,7 +120,13 @@ def main() -> int:
         if not url:
             continue
         # Choose extension from deliverable type
-        ext = "png" if args.deliverable == "image" else "zip" if args.deliverable == "payload" else "tif"
+        ext = (
+            "png"
+            if args.deliverable == "image"
+            else "zip"
+            if args.deliverable == "payload"
+            else "tif"
+        )
         path = out_dir / f"skyfi-{code}.{ext}"
         try:
             r = requests.get(url, stream=True, timeout=60)

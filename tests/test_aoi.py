@@ -1,7 +1,5 @@
 """Tests for AOI validation service."""
 
-import pytest
-
 from src.services.aoi import (
     coarse_aoi_key,
     get_aoi_area_sqkm,
@@ -121,5 +119,9 @@ def test_coarse_aoi_key_explicit_decimals() -> None:
     parts3 = key3.split("_")
     parts2 = key2.split("_")
     assert len(parts3) == 2 and len(parts2) == 2
-    assert float(parts3[0]) == round(-122.4144, 3) and float(parts3[1]) == round(37.7799, 3)
-    assert float(parts2[0]) == round(-122.4144, 2) and float(parts2[1]) == round(37.7799, 2)
+    assert float(parts3[0]) == round(-122.4144, 3) and float(parts3[1]) == round(
+        37.7799, 3
+    )
+    assert float(parts2[0]) == round(-122.4144, 2) and float(parts2[1]) == round(
+        37.7799, 2
+    )

@@ -14,7 +14,9 @@ def test_get_user_orders_tool_success(mock_get_client: object) -> None:
     mock_resp.status_code = 200
     mock_resp.json.return_value = {
         "total": 1,
-        "orders": [{"id": "item-1", "orderId": "ord-abc", "status": "DELIVERY_COMPLETED"}],
+        "orders": [
+            {"id": "item-1", "orderId": "ord-abc", "status": "DELIVERY_COMPLETED"}
+        ],
     }
     mock_client.get.return_value = mock_resp
     mock_get_client.return_value = mock_client
@@ -23,7 +25,10 @@ def test_get_user_orders_tool_success(mock_get_client: object) -> None:
     assert out["error"] is None
     assert out["total"] == 1
     assert len(out["orders"]) == 1
-    assert out["orders"][0].get("order_id") == "ord-abc" or out["orders"][0].get("orderId") == "ord-abc"
+    assert (
+        out["orders"][0].get("order_id") == "ord-abc"
+        or out["orders"][0].get("orderId") == "ord-abc"
+    )
 
 
 @patch("src.tools.get_user_orders.get_skyfi_client")

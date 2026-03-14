@@ -6,7 +6,6 @@ Uses contextvars so the same async context sees the same values for one request.
 
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any
 
 from src.client.skyfi_client import SkyFiClient
 from src.config import settings

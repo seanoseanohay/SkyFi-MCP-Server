@@ -5,7 +5,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from src import credentials_loader
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -14,7 +13,9 @@ _ROOT = Path(__file__).resolve().parent.parent
 def test_load_credentials_from_json_missing_file_returns_empty() -> None:
     """When path does not exist, returns empty dict."""
     with patch.dict("os.environ", {}, clear=False):
-        with patch.object(credentials_loader, "_DEFAULT_PATH", _ROOT / "nonexistent_creds.json"):
+        with patch.object(
+            credentials_loader, "_DEFAULT_PATH", _ROOT / "nonexistent_creds.json"
+        ):
             # Force re-read by clearing any module-level cache if present
             result = credentials_loader.load_credentials_from_json()
     assert result == {}
@@ -39,9 +40,13 @@ def test_load_credentials_from_json_custom_path_from_env() -> None:
     """SKYFI_CREDENTIALS_PATH is used when set."""
     tmp = _ROOT / "tests" / "fixtures" / "test_creds.json"
     tmp.parent.mkdir(parents=True, exist_ok=True)
-    tmp.write_text(json.dumps({"api_key": "test-key", "api_base_url": "https://api.test.com"}))
+    tmp.write_text(
+        json.dumps({"api_key": "test-key", "api_base_url": "https://api.test.com"})
+    )
     try:
-        with patch.dict("os.environ", {"SKYFI_CREDENTIALS_PATH": str(tmp)}, clear=False):
+        with patch.dict(
+            "os.environ", {"SKYFI_CREDENTIALS_PATH": str(tmp)}, clear=False
+        ):
             result = credentials_loader.load_credentials_from_json()
         assert result.get("api_key") == "test-key"
         assert result.get("api_base_url") == "https://api.test.com"
@@ -56,7 +61,9 @@ def test_load_credentials_from_json_invalid_json_returns_empty() -> None:
     tmp.parent.mkdir(parents=True, exist_ok=True)
     tmp.write_text("not valid json {")
     try:
-        with patch.dict("os.environ", {"SKYFI_CREDENTIALS_PATH": str(tmp)}, clear=False):
+        with patch.dict(
+            "os.environ", {"SKYFI_CREDENTIALS_PATH": str(tmp)}, clear=False
+        ):
             result = credentials_loader.load_credentials_from_json()
         assert result == {}
     finally:

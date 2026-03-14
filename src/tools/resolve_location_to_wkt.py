@@ -21,4 +21,3 @@ def resolve_location_to_wkt(location_query: str) -> dict[str, Any]:
         Dict with "wkt" (POLYGON string or None) and "error" (None or error message).
     """
     return service_resolve(location_query)
-

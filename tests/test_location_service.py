@@ -2,16 +2,20 @@
 
 from unittest.mock import patch
 
-import pytest
 import requests
-
 from src.services import location
 
 
 def test_resolve_location_to_wkt_empty_query_returns_error() -> None:
     """Empty or missing query returns error."""
-    assert location.resolve_location_to_wkt("") == {"wkt": None, "error": "location_query is required"}
-    assert location.resolve_location_to_wkt("   ") == {"wkt": None, "error": "location_query is required"}
+    assert location.resolve_location_to_wkt("") == {
+        "wkt": None,
+        "error": "location_query is required",
+    }
+    assert location.resolve_location_to_wkt("   ") == {
+        "wkt": None,
+        "error": "location_query is required",
+    }
 
 
 def test_resolve_location_to_wkt_returns_wkt_from_boundingbox() -> None:
@@ -37,7 +41,9 @@ def test_resolve_location_to_wkt_returns_wkt_from_boundingbox() -> None:
 
 def test_resolve_location_to_wkt_fallback_lat_lon_when_no_bbox() -> None:
     """When boundingbox missing, use lat/lon to build small box."""
-    mock_response = [{"lat": "37.77", "lon": "-122.42", "display_name": "San Francisco"}]
+    mock_response = [
+        {"lat": "37.77", "lon": "-122.42", "display_name": "San Francisco"}
+    ]
     with patch("src.services.location.requests.get") as mock_get:
         mock_get.return_value.json.return_value = mock_response
         mock_get.return_value.raise_for_status = lambda: None
@@ -59,7 +65,10 @@ def test_resolve_location_to_wkt_no_results_returns_error() -> None:
 
 def test_resolve_location_to_wkt_request_failure_returns_error() -> None:
     """Request exception returns error message."""
-    with patch("src.services.location.requests.get", side_effect=requests.ConnectionError("Network error")):
+    with patch(
+        "src.services.location.requests.get",
+        side_effect=requests.ConnectionError("Network error"),
+    ):
         result = location.resolve_location_to_wkt("Austin")
     assert result["wkt"] is None
     assert "failed" in result["error"].lower() or "error" in result["error"].lower()

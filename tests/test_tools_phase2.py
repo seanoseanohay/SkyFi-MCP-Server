@@ -2,9 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
-from src.tools.search_imagery import search_imagery
 from src.tools.calculate_aoi_price import calculate_aoi_price
-
+from src.tools.search_imagery import search_imagery
 
 WKT_SF = "POLYGON((-122.4194 37.7749, -122.4094 37.7749, -122.4094 37.7849, -122.4194 37.7849, -122.4194 37.7749))"
 
@@ -23,7 +22,10 @@ def test_search_imagery_returns_results_when_valid(mock_get_client: MagicMock) -
     mock_client = MagicMock()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = {"archives": [{"archiveId": "x", "thumbnailUrls": {}}], "nextPage": None}
+    mock_resp.json.return_value = {
+        "archives": [{"archiveId": "x", "thumbnailUrls": {}}],
+        "nextPage": None,
+    }
     mock_resp.text = ""
     mock_client.post.return_value = mock_resp
     mock_get_client.return_value = mock_client
@@ -43,7 +45,9 @@ def test_calculate_aoi_price_rejects_invalid_aoi() -> None:
 
 
 @patch("src.tools.calculate_aoi_price.get_skyfi_client")
-def test_calculate_aoi_price_returns_pricing_when_valid(mock_get_client: MagicMock) -> None:
+def test_calculate_aoi_price_returns_pricing_when_valid(
+    mock_get_client: MagicMock,
+) -> None:
     """Valid AOI delegates to service and returns pricing."""
     mock_client = MagicMock()
     mock_resp = MagicMock()

@@ -34,7 +34,9 @@ def _now() -> float:
 def _evict_expired() -> None:
     """Remove expired entries from the preview store."""
     now = _now()
-    expired = [pid for pid, v in _preview_store.items() if (v.get("expires_at") or 0) <= now]
+    expired = [
+        pid for pid, v in _preview_store.items() if (v.get("expires_at") or 0) <= now
+    ]
     for pid in expired:
         del _preview_store[pid]
 
@@ -99,9 +101,15 @@ def request_order_preview(
         if not (window_end or "").strip():
             return {"ok": False, "error": "window_end is required for tasking orders"}
         if not (product_type or "").strip():
-            return {"ok": False, "error": "product_type is required for tasking orders (e.g. DAY, SAR, STEREO)"}
+            return {
+                "ok": False,
+                "error": "product_type is required for tasking orders (e.g. DAY, SAR, STEREO)",
+            }
         if not (resolution or "").strip():
-            return {"ok": False, "error": "resolution is required for tasking orders (e.g. HIGH, VERY HIGH, SUPER HIGH)"}
+            return {
+                "ok": False,
+                "error": "resolution is required for tasking orders (e.g. HIGH, VERY HIGH, SUPER HIGH)",
+            }
         # Tasking AOI area must be within SkyFi-supported range (default 25–500 sq km)
         area_result = aoi.get_aoi_area_sqkm(aoi_wkt)
         if not area_result.get("ok"):
@@ -179,7 +187,10 @@ def confirm_order(client: SkyFiClient, preview_id: str) -> dict[str, Any]:
 
     entry = _preview_store.pop(preview_id, None)
     if not entry:
-        return {"ok": False, "error": "Preview not found or expired. Request a new order preview."}
+        return {
+            "ok": False,
+            "error": "Preview not found or expired. Request a new order preview.",
+        }
 
     if _now() > entry["expires_at"]:
         return {"ok": False, "error": "Preview expired. Request a new order preview."}
@@ -377,7 +388,10 @@ def _resolve_download_path(requested: str) -> dict[str, Any]:
             p_real = p.resolve()
             base_real = base.resolve()
             if os.path.commonpath([str(base_real), str(p_real)]) != str(base_real):
-                return {"ok": False, "error": f"Path must be under SKYFI_DOWNLOAD_DIR ({base_real})"}
+                return {
+                    "ok": False,
+                    "error": f"Path must be under SKYFI_DOWNLOAD_DIR ({base_real})",
+                }
         except (ValueError, OSError) as e:
             return {"ok": False, "error": str(e)}
     return {"ok": True, "path": p}
@@ -406,9 +420,14 @@ def download_order_to_path(
         return {"ok": False, "error": resolved.get("error", "Invalid path")}
     path = resolved["path"]
 
-    url_result = get_order_download_url(client, order_id=order_id, deliverable_type=deliverable_type)
+    url_result = get_order_download_url(
+        client, order_id=order_id, deliverable_type=deliverable_type
+    )
     if not url_result.get("ok"):
-        return {"ok": False, "error": url_result.get("error", "Failed to get download URL")}
+        return {
+            "ok": False,
+            "error": url_result.get("error", "Failed to get download URL"),
+        }
     url = url_result.get("download_url")
     if not url:
         return {"ok": False, "error": "No download URL in response"}
@@ -485,14 +504,19 @@ def download_recent_orders_to_directory(
         filename = f"skyfi-{code}.{ext}"
         file_path = out_dir / filename
         result = download_order_to_path(
-            client, order_id=str(oid), deliverable_type=deliverable_type, output_path=str(file_path)
+            client,
+            order_id=str(oid),
+            deliverable_type=deliverable_type,
+            output_path=str(file_path),
         )
         if result.get("ok"):
-            downloaded.append({
-                "order_id": str(oid),
-                "path": result["path"],
-                "bytes_written": result.get("bytes_written", 0),
-            })
+            downloaded.append(
+                {
+                    "order_id": str(oid),
+                    "path": result["path"],
+                    "bytes_written": result.get("bytes_written", 0),
+                }
+            )
         else:
             errors.append(f"Order {oid}: {result.get('error', 'unknown')}")
 

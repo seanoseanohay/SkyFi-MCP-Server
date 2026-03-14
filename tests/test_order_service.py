@@ -4,23 +4,30 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from src.client.skyfi_client import SkyFiClient
 from src.services.order import (
     _rewrite_order_api_error,
     confirm_order,
-    download_order_to_path as service_download_order_to_path,
-    get_order_download_url as service_get_order_download_url,
-    get_user_orders as service_get_user_orders,
     poll_order_status,
     request_order_preview,
+)
+from src.services.order import (
+    download_order_to_path as service_download_order_to_path,
+)
+from src.services.order import (
+    get_order_download_url as service_get_order_download_url,
+)
+from src.services.order import (
+    get_user_orders as service_get_user_orders,
 )
 
 WKT = "POLYGON((-122.42 37.77, -122.41 37.77, -122.41 37.78, -122.42 37.78, -122.42 37.77))"
 # Small AOI (~0.98 sq km) — below typical tasking minimum 25 sq km
 WKT_SMALL = "POLYGON((-122.4194 37.7749, -122.4094 37.7749, -122.4094 37.7849, -122.4194 37.7849, -122.4194 37.7749))"
 # AOI ~220 sq km — within tasking range 25–500 sq km for success tests
-WKT_TASKING = "POLYGON((-122.5 37.7, -122.35 37.7, -122.35 37.85, -122.5 37.85, -122.5 37.7))"
+WKT_TASKING = (
+    "POLYGON((-122.5 37.7, -122.35 37.7, -122.35 37.85, -122.5 37.85, -122.5 37.7))"
+)
 
 
 def test_request_order_preview_archive_success() -> None:
@@ -157,7 +164,9 @@ def test_confirm_order_missing_preview() -> None:
 
 def test_confirm_order_success_archive() -> None:
     """Confirm with valid archive preview calls POST /order-archive and returns order_id."""
-    preview = request_order_preview(order_type="archive", aoi_wkt=WKT, archive_id="arch-1")
+    preview = request_order_preview(
+        order_type="archive", aoi_wkt=WKT, archive_id="arch-1"
+    )
     assert preview["ok"] is True
     preview_id = preview["preview_id"]
 
@@ -218,9 +227,7 @@ def test_confirm_order_success_tasking() -> None:
 
 def test_confirm_order_one_time_use() -> None:
     """Confirm consumes preview; second confirm with same id fails."""
-    preview = request_order_preview(
-        order_type="archive", aoi_wkt=WKT, archive_id="a1"
-    )
+    preview = request_order_preview(order_type="archive", aoi_wkt=WKT, archive_id="a1")
     preview_id = preview["preview_id"]
 
     mock_resp = MagicMock()
@@ -268,7 +275,7 @@ def test_poll_order_status_empty_order_id() -> None:
 
 def test_rewrite_order_api_error_area_size() -> None:
     """SkyFi 'Area size is not supported min < actual < max' is rewritten to clear message."""
-    raw = 'Area size is not supported 25.0 < 0.98 < 500.0 for this tasking'
+    raw = "Area size is not supported 25.0 < 0.98 < 500.0 for this tasking"
     out = _rewrite_order_api_error(raw)
     assert "0.98" in out
     assert "25" in out
@@ -415,7 +422,9 @@ def test_get_order_download_url_invalid_deliverable_type() -> None:
     client = MagicMock(spec=SkyFiClient)
     out = service_get_order_download_url(client, "ord-1", "invalid")
     assert out["ok"] is False
-    assert "image" in out["error"] and "payload" in out["error"] and "cog" in out["error"]
+    assert (
+        "image" in out["error"] and "payload" in out["error"] and "cog" in out["error"]
+    )
     client.get.assert_not_called()
 
 

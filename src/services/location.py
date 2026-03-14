@@ -36,9 +36,7 @@ def _boundingbox_to_wkt(bbox: list[str]) -> str:
         return ""
     min_lat, max_lat, min_lon, max_lon = bbox[0], bbox[1], bbox[2], bbox[3]
     # WKT: (lon lat, lon lat, ...) — close the ring
-    return (
-        f"POLYGON(({min_lon} {min_lat}, {max_lon} {min_lat}, {max_lon} {max_lat}, {min_lon} {max_lat}, {min_lon} {min_lat}))"
-    )
+    return f"POLYGON(({min_lon} {min_lat}, {max_lon} {min_lat}, {max_lon} {max_lat}, {min_lon} {max_lat}, {min_lon} {min_lat}))"
 
 
 def resolve_location_to_wkt(location_query: str) -> dict[str, Any]:
@@ -85,7 +83,12 @@ def resolve_location_to_wkt(location_query: str) -> dict[str, Any]:
             try:
                 la, lo = float(lat), float(lon)
                 delta = 0.01
-                bbox = [str(la - delta), str(la + delta), str(lo - delta), str(lo + delta)]
+                bbox = [
+                    str(la - delta),
+                    str(la + delta),
+                    str(lo - delta),
+                    str(lo + delta),
+                ]
             except (TypeError, ValueError):
                 pass
         if not bbox or len(bbox) < 4:

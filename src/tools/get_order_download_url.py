@@ -8,7 +8,9 @@ from src.request_context import get_skyfi_client
 from src.services.order import get_order_download_url as service_get_order_download_url
 
 
-def get_order_download_url(order_id: str, deliverable_type: str = "image") -> dict[str, Any]:
+def get_order_download_url(
+    order_id: str, deliverable_type: str = "image"
+) -> dict[str, Any]:
     """
     Get a signed download URL for an order's deliverable. Use after the order is delivered
     (check with poll_order_status). The returned download_url is the direct link: open it in a
@@ -22,7 +24,9 @@ def get_order_download_url(order_id: str, deliverable_type: str = "image") -> di
         Dict with download_url, deliverable_type on success; or error.
     """
     client = get_skyfi_client()
-    result = service_get_order_download_url(client, order_id=order_id, deliverable_type=deliverable_type)
+    result = service_get_order_download_url(
+        client, order_id=order_id, deliverable_type=deliverable_type
+    )
 
     if not result.get("ok"):
         return {

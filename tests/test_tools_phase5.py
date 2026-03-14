@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 from src.client.skyfi_client import SkyFiClient
 from src.services.notifications import clear_subscription_cache, get_notification_url
-from src.tools.setup_aoi_monitoring import setup_aoi_monitoring
 from src.tools.cancel_aoi_monitor import cancel_aoi_monitor
+from src.tools.setup_aoi_monitoring import setup_aoi_monitoring
 
 WKT_SF = "POLYGON((-122.4194 37.7749, -122.4094 37.7749, -122.4094 37.7849, -122.4194 37.7849, -122.4194 37.7749))"
 
@@ -59,7 +59,9 @@ def test_setup_aoi_monitoring_uses_webhook_base_url_from_env_when_no_arg() -> No
 
     with patch("src.tools.setup_aoi_monitoring.settings") as mock_settings:
         mock_settings.webhook_base_url = "https://my-server.com/skyfi-events"
-        with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
+        with patch(
+            "src.tools.setup_aoi_monitoring.get_skyfi_client"
+        ) as mock_get_client:
             mock_client = MagicMock(spec=SkyFiClient)
             mock_client.post.return_value = mock_resp
             mock_get_client.return_value = mock_client
@@ -83,9 +85,15 @@ def test_setup_aoi_monitoring_uses_webhook_url_from_header_when_no_arg() -> None
 
     with patch("src.tools.setup_aoi_monitoring.settings") as mock_settings:
         mock_settings.webhook_base_url = ""  # no env; header should provide webhook URL
-        with patch("src.tools.setup_aoi_monitoring.get_webhook_url_from_context") as mock_get_webhook:
-            mock_get_webhook.return_value = "https://my-tunnel.example.com/webhooks/skyfi"
-            with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
+        with patch(
+            "src.tools.setup_aoi_monitoring.get_webhook_url_from_context"
+        ) as mock_get_webhook:
+            mock_get_webhook.return_value = (
+                "https://my-tunnel.example.com/webhooks/skyfi"
+            )
+            with patch(
+                "src.tools.setup_aoi_monitoring.get_skyfi_client"
+            ) as mock_get_client:
                 mock_client = MagicMock(spec=SkyFiClient)
                 mock_client.post.return_value = mock_resp
                 mock_get_client.return_value = mock_client
@@ -99,7 +107,9 @@ def test_setup_aoi_monitoring_uses_webhook_url_from_header_when_no_arg() -> None
     assert body["webhookUrl"] == "https://my-tunnel.example.com/webhooks/skyfi"
 
 
-def test_setup_aoi_monitoring_uses_derived_webhook_url_when_public_request_base() -> None:
+def test_setup_aoi_monitoring_uses_derived_webhook_url_when_public_request_base() -> (
+    None
+):
     """When webhook_url is omitted and no header/env, uses derived URL from request base (public host)."""
     clear_subscription_cache()
     mock_resp = MagicMock()
@@ -109,10 +119,17 @@ def test_setup_aoi_monitoring_uses_derived_webhook_url_when_public_request_base(
 
     with patch("src.tools.setup_aoi_monitoring.settings") as mock_settings:
         mock_settings.webhook_base_url = ""
-        with patch("src.tools.setup_aoi_monitoring.get_webhook_url_from_context", return_value=None):
-            with patch("src.tools.setup_aoi_monitoring.get_derived_webhook_url") as mock_derived:
+        with patch(
+            "src.tools.setup_aoi_monitoring.get_webhook_url_from_context",
+            return_value=None,
+        ):
+            with patch(
+                "src.tools.setup_aoi_monitoring.get_derived_webhook_url"
+            ) as mock_derived:
                 mock_derived.return_value = "https://keenermcp.com/webhooks/skyfi"
-                with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
+                with patch(
+                    "src.tools.setup_aoi_monitoring.get_skyfi_client"
+                ) as mock_get_client:
                     mock_client = MagicMock(spec=SkyFiClient)
                     mock_client.post.return_value = mock_resp
                     mock_get_client.return_value = mock_client
@@ -156,7 +173,9 @@ def test_setup_aoi_monitoring_uses_notification_url_from_env_when_no_arg() -> No
     with patch("src.tools.setup_aoi_monitoring.settings") as mock_settings:
         mock_settings.webhook_base_url = "https://my-server.com/webhooks/skyfi"
         mock_settings.notification_url = "https://hooks.slack.com/services/T00/B00/xxx"
-        with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
+        with patch(
+            "src.tools.setup_aoi_monitoring.get_skyfi_client"
+        ) as mock_get_client:
             mock_client = MagicMock(spec=SkyFiClient)
             mock_client.post.return_value = mock_resp
             mock_get_client.return_value = mock_client
@@ -165,7 +184,10 @@ def test_setup_aoi_monitoring_uses_notification_url_from_env_when_no_arg() -> No
 
     assert out["error"] is None
     assert out["subscription_id"] == "sub-env-notify"
-    assert get_notification_url("sub-env-notify") == "https://hooks.slack.com/services/T00/B00/xxx"
+    assert (
+        get_notification_url("sub-env-notify")
+        == "https://hooks.slack.com/services/T00/B00/xxx"
+    )
 
 
 def test_setup_aoi_monitoring_uses_notification_url_from_header_when_no_param() -> None:
@@ -179,7 +201,9 @@ def test_setup_aoi_monitoring_uses_notification_url_from_header_when_no_param() 
     with patch("src.tools.setup_aoi_monitoring.settings") as mock_settings:
         mock_settings.webhook_base_url = "https://my-server.com/webhooks/skyfi"
         mock_settings.notification_url = ""  # env not set; header should win
-        with patch("src.tools.setup_aoi_monitoring.get_skyfi_client") as mock_get_client:
+        with patch(
+            "src.tools.setup_aoi_monitoring.get_skyfi_client"
+        ) as mock_get_client:
             mock_client = MagicMock(spec=SkyFiClient)
             mock_client.post.return_value = mock_resp
             mock_get_client.return_value = mock_client
@@ -191,7 +215,10 @@ def test_setup_aoi_monitoring_uses_notification_url_from_header_when_no_param() 
 
     assert out["error"] is None
     assert out["subscription_id"] == "sub-header-notify"
-    assert get_notification_url("sub-header-notify") == "https://hooks.slack.com/services/HEADER/url"
+    assert (
+        get_notification_url("sub-header-notify")
+        == "https://hooks.slack.com/services/HEADER/url"
+    )
 
 
 # --- cancel_aoi_monitor tool ---
@@ -215,7 +242,9 @@ def test_cancel_aoi_monitor_api_error_returns_error() -> None:
     """cancel_aoi_monitor returns error when service returns ok False."""
     with patch("src.tools.cancel_aoi_monitor.get_skyfi_client") as mock_get_client:
         mock_client = MagicMock(spec=SkyFiClient)
-        mock_client.delete.return_value = MagicMock(status_code=400, text="Invalid subscription")
+        mock_client.delete.return_value = MagicMock(
+            status_code=400, text="Invalid subscription"
+        )
         mock_get_client.return_value = mock_client
 
         out = cancel_aoi_monitor(subscription_id="sub-bad")

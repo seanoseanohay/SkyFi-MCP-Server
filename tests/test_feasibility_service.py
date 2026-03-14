@@ -3,12 +3,14 @@
 from unittest import mock
 from unittest.mock import MagicMock
 
-import pytest
-
 from src.client.skyfi_client import SkyFiClient
 from src.services.feasibility import (
     check_feasibility as service_check_feasibility,
+)
+from src.services.feasibility import (
     clear_pass_prediction_cache,
+)
+from src.services.feasibility import (
     get_pass_prediction as service_get_pass_prediction,
 )
 
@@ -20,7 +22,11 @@ def test_get_pass_prediction_returns_passes() -> None:
     mock_resp.status_code = 200
     mock_resp.json.return_value = {
         "passes": [
-            {"satname": "SV-1", "passDate": "2026-03-08T19:28:06Z", "provider": "SIWEI"},
+            {
+                "satname": "SV-1",
+                "passDate": "2026-03-08T19:28:06Z",
+                "provider": "SIWEI",
+            },
         ],
     }
     mock_resp.text = ""
@@ -45,7 +51,9 @@ def test_get_pass_prediction_uses_predictions_key() -> None:
     clear_pass_prediction_cache()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = {"predictions": [{"passDate": "2026-03-09T12:00:00Z"}]}
+    mock_resp.json.return_value = {
+        "predictions": [{"passDate": "2026-03-09T12:00:00Z"}]
+    }
     mock_resp.text = ""
 
     client = MagicMock(spec=SkyFiClient)

@@ -14,13 +14,12 @@ Saves sample JSON responses to ../samples/
 import json
 import os
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
 from dotenv import load_dotenv
 from shapely import wkt as shapely_wkt
-from shapely.geometry import mapping
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
@@ -32,7 +31,9 @@ load_dotenv(ROOT / ".env")
 
 API_KEY = os.environ.get("X_SKYFI_API_KEY", "")
 # SkyFi Platform API: docs at https://app.skyfi.com/platform-api/docs
-BASE_URL = os.environ.get("SKYFI_API_BASE_URL", "https://app.skyfi.com/platform-api").rstrip("/")
+BASE_URL = os.environ.get(
+    "SKYFI_API_BASE_URL", "https://app.skyfi.com/platform-api"
+).rstrip("/")
 PAGE_SIZE = int(os.environ.get("ARCHIVES_PAGE_SIZE", "100"))
 
 # Small WKT AOI — downtown San Francisco (~1.5 km²)
@@ -56,6 +57,7 @@ PASS_TO = (NOW + timedelta(days=8)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def headers() -> dict:
     return {
@@ -93,6 +95,7 @@ def info(msg: str) -> None:
 
 # ── Test 0: Prerequisites ────────────────────────────────────────────────────
 
+
 def test_prerequisites() -> bool:
     section("Test 0 — Prerequisites")
     passed = True
@@ -110,7 +113,9 @@ def test_prerequisites() -> bool:
     try:
         geom = shapely_wkt.loads(TEST_WKT)
         area_deg2 = geom.area
-        info(f"WKT valid — vertices={len(list(geom.exterior.coords))}, area≈{area_deg2:.6f}°²")
+        info(
+            f"WKT valid — vertices={len(list(geom.exterior.coords))}, area≈{area_deg2:.6f}°²"
+        )
         ok("WKT geometry valid (shapely)")
     except Exception as exc:
         fail(f"WKT invalid: {exc}")
@@ -120,6 +125,7 @@ def test_prerequisites() -> bool:
 
 
 # ── Test 1: POST /archives ───────────────────────────────────────────────────
+
 
 def test_archives() -> dict | None:
     section("Test 1 — POST /archives (imagery search)")
@@ -140,7 +146,9 @@ def test_archives() -> dict | None:
     except requests.exceptions.ConnectionError as exc:
         err = str(exc)
         if "resolve" in err.lower() or "nodename" in err.lower():
-            fail("DNS failed — host not found. Set SKYFI_API_BASE_URL in .env (see https://app.skyfi.com/platform-api/docs).")
+            fail(
+                "DNS failed — host not found. Set SKYFI_API_BASE_URL in .env (see https://app.skyfi.com/platform-api/docs)."
+            )
             info(f"Detail: {err[:120]}...")
         else:
             fail(f"Connection failed: {exc}")
@@ -182,7 +190,11 @@ def test_archives() -> dict | None:
     # Check thumbnailUrls
     thumb_count = 0
     for item in results:
-        thumbs = item.get("thumbnailUrls") or item.get("thumbnail_urls") or item.get("thumbnails", [])
+        thumbs = (
+            item.get("thumbnailUrls")
+            or item.get("thumbnail_urls")
+            or item.get("thumbnails", [])
+        )
         if thumbs:
             thumb_count += 1
     if results:
@@ -194,14 +206,23 @@ def test_archives() -> dict | None:
     if results:
         first = results[0]
         info(f"First result keys: {list(first.keys())[:10]}")
-        cloud = first.get("cloudCoveragePercent") or first.get("cloudCoverage") or first.get("cloud_coverage")
-        date = first.get("captureTimestamp") or first.get("date") or first.get("acquisitionDate")
+        cloud = (
+            first.get("cloudCoveragePercent")
+            or first.get("cloudCoverage")
+            or first.get("cloud_coverage")
+        )
+        date = (
+            first.get("captureTimestamp")
+            or first.get("date")
+            or first.get("acquisitionDate")
+        )
         info(f"First result — captureTimestamp={date}, cloudCoveragePercent={cloud}")
 
     return data
 
 
 # ── Test 2: Pagination ───────────────────────────────────────────────────────
+
 
 def test_pagination(archives_response: dict | None) -> None:
     section("Test 2 — Pagination (nextPage token)")
@@ -216,7 +237,9 @@ def test_pagination(archives_response: dict | None) -> None:
     )
 
     if not next_page:
-        info("No nextPage token in first response — pagination not needed or no more results")
+        info(
+            "No nextPage token in first response — pagination not needed or no more results"
+        )
         ok("Pagination field check passed (no token = single page)")
         return
 
@@ -253,6 +276,7 @@ def test_pagination(archives_response: dict | None) -> None:
 
 # ── Test 3: POST /pricing ────────────────────────────────────────────────────
 
+
 def test_pricing() -> None:
     section("Test 3 — POST /pricing")
     url = f"{BASE_URL}/pricing"
@@ -288,9 +312,11 @@ def test_pricing() -> None:
         if price is not None:
             ok(f"Price: {price} {currency}")
         else:
-            info(f"Price field not found in top-level keys — inspect sample file")
+            info("Price field not found in top-level keys — inspect sample file")
     elif resp.status_code == 404:
-        info("Pricing endpoint returned 404 — may require different payload or not available for open data")
+        info(
+            "Pricing endpoint returned 404 — may require different payload or not available for open data"
+        )
         info(f"Response: {resp.text[:300]}")
     elif resp.status_code == 422:
         info(f"Validation error: {resp.text[:300]}")
@@ -299,6 +325,7 @@ def test_pricing() -> None:
 
 
 # ── Test 4: POST /feasibility/pass-prediction ────────────────────────────────
+
 
 def test_pass_prediction() -> None:
     section("Test 4 — POST /feasibility/pass-prediction")
@@ -330,10 +357,7 @@ def test_pass_prediction() -> None:
         ok("Pass prediction response received")
         info(f"Response keys: {list(data.keys())[:10]}")
         passes = (
-            data.get("passes")
-            or data.get("predictions")
-            or data.get("results")
-            or []
+            data.get("passes") or data.get("predictions") or data.get("results") or []
         )
         if isinstance(passes, list):
             ok(f"Pass count: {len(passes)}")
@@ -342,7 +366,9 @@ def test_pass_prediction() -> None:
         else:
             info(f"Passes field type: {type(passes)}")
     elif resp.status_code == 404:
-        info("Pass prediction returned 404 — endpoint may differ or require satellite/sensor params")
+        info(
+            "Pass prediction returned 404 — endpoint may differ or require satellite/sensor params"
+        )
         info(f"Response: {resp.text[:300]}")
     elif resp.status_code == 422:
         info(f"Validation error: {resp.text[:300]}")
@@ -352,13 +378,16 @@ def test_pass_prediction() -> None:
 
 # ── Test 5: POST /notifications (Phase 5 — AOI monitoring) ──────────────────
 
+
 def test_notifications() -> None:
     """Validate POST /notifications (setup_aoi_monitoring). Requires a reachable webhook URL."""
     section("Test 5 — POST /notifications (Phase 5 AOI monitoring)")
     webhook_url = os.environ.get("SKYFI_WEBHOOK_BASE_URL", "").strip().rstrip("/")
     if not webhook_url:
         info("SKIPPED — set SKYFI_WEBHOOK_BASE_URL to validate.")
-        info("Use a public request catcher (e.g. https://webhook.site) to get a unique URL.")
+        info(
+            "Use a public request catcher (e.g. https://webhook.site) to get a unique URL."
+        )
         return
 
     url = f"{BASE_URL}/notifications"
@@ -384,7 +413,9 @@ def test_notifications() -> None:
         data = resp.json() if resp.text else {}
         save_sample("notifications", data)
         ok("Notifications (AOI monitoring) subscription accepted")
-        sub_id = data.get("subscriptionId") or data.get("notificationId") or data.get("id")
+        sub_id = (
+            data.get("subscriptionId") or data.get("notificationId") or data.get("id")
+        )
         if sub_id is not None:
             ok(f"subscription id: {sub_id}")
         else:
@@ -393,7 +424,9 @@ def test_notifications() -> None:
         info(f"Bad request — API may expect different body shape: {resp.text[:400]}")
         info("Check SkyFi docs: https://app.skyfi.com/platform-api/docs")
     elif resp.status_code == 404:
-        info("Endpoint returned 404 — notifications API may use a different path or method.")
+        info(
+            "Endpoint returned 404 — notifications API may use a different path or method."
+        )
         info(f"Response: {resp.text[:300]}")
     elif resp.status_code == 422:
         info(f"Validation error: {resp.text[:400]}")
@@ -402,6 +435,7 @@ def test_notifications() -> None:
 
 
 # ── Test 6: GET /notifications (list AOI monitors) ─────────────────────────────
+
 
 def test_get_notifications() -> None:
     """Validate GET /notifications (list_aoi_monitors). Shows what SkyFi returns for this account."""
@@ -428,9 +462,14 @@ def test_get_notifications() -> None:
         save_sample("notifications_list", data)
         # Normalize: accept array or { notifications, subscriptions, data, items, results }
         raw_list = (
-            data if isinstance(data, list) else
-            data.get("notifications") or data.get("subscriptions") or data.get("data")
-            or data.get("items") or data.get("results") or []
+            data
+            if isinstance(data, list)
+            else data.get("notifications")
+            or data.get("subscriptions")
+            or data.get("data")
+            or data.get("items")
+            or data.get("results")
+            or []
         )
         if not isinstance(raw_list, list):
             raw_list = []
@@ -439,27 +478,38 @@ def test_get_notifications() -> None:
             first = raw_list[0] if isinstance(raw_list[0], dict) else {}
             info(f"First item keys: {list(first.keys())}")
             # Id field name SkyFi might use
-            sub_id = first.get("id") or first.get("subscriptionId") or first.get("notificationId")
+            sub_id = (
+                first.get("id")
+                or first.get("subscriptionId")
+                or first.get("notificationId")
+            )
             if sub_id is not None:
                 info(f"First subscription id: {sub_id}")
         else:
-            info("Empty list — no AOI monitors for this API key, or SkyFi returns only API-created subscriptions.")
+            info(
+                "Empty list — no AOI monitors for this API key, or SkyFi returns only API-created subscriptions."
+            )
     elif resp.status_code == 404:
-        info("GET /notifications returned 404 — endpoint may not be supported; list_aoi_monitors will use local cache.")
+        info(
+            "GET /notifications returned 404 — endpoint may not be supported; list_aoi_monitors will use local cache."
+        )
         info(f"Response: {resp.text[:200]}")
     elif resp.status_code == 501:
-        info("GET /notifications returned 501 — not implemented; list_aoi_monitors will use local cache.")
+        info(
+            "GET /notifications returned 501 — not implemented; list_aoi_monitors will use local cache."
+        )
     else:
         info(f"Unexpected status: {resp.status_code} — {resp.text[:300]}")
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
+
 def main() -> int:
     print("\n🛰  SkyFi Platform Validation — Phase 0")
     print(f"   {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"   Base URL: {BASE_URL}")
-    print(f"   open data only: True (guaranteed $0 spend)")
+    print("   open data only: True (guaranteed $0 spend)")
 
     if not test_prerequisites():
         print("\n⚠️  Prerequisites failed — aborting.")

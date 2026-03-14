@@ -21,21 +21,21 @@ from src.services import webhook_events
 from src.services.customer_notify import notify_customer
 from src.services.notifications import get_notification_url
 from src.tools.calculate_aoi_price import calculate_aoi_price
+from src.tools.cancel_aoi_monitor import cancel_aoi_monitor
 from src.tools.check_feasibility import check_feasibility
 from src.tools.confirm_image_order import confirm_image_order
-from src.tools.get_monitoring_events import get_monitoring_events
-from src.tools.list_aoi_monitors import list_aoi_monitors
 from src.tools.download_order_file import download_order_file
 from src.tools.download_recent_orders import download_recent_orders
+from src.tools.get_monitoring_events import get_monitoring_events
 from src.tools.get_order_download_url import get_order_download_url
 from src.tools.get_pass_prediction import get_pass_prediction
 from src.tools.get_user_orders import get_user_orders
+from src.tools.list_aoi_monitors import list_aoi_monitors
 from src.tools.poll_order_status import poll_order_status
 from src.tools.request_image_order import request_image_order
 from src.tools.resolve_location_to_wkt import resolve_location_to_wkt
 from src.tools.search_imagery import search_imagery
 from src.tools.setup_aoi_monitoring import setup_aoi_monitoring
-from src.tools.cancel_aoi_monitor import cancel_aoi_monitor
 
 setup_logging()
 logger = get_logger(__name__)
@@ -111,9 +111,13 @@ def main() -> None:
     app = mcp.streamable_http_app()
     from src.middleware.rate_limit import RateLimitMiddleware
     from src.middleware.skyfi_request_context import SkyFiRequestContextMiddleware
+
     app.add_middleware(RateLimitMiddleware)
-    app.add_middleware(SkyFiRequestContextMiddleware)  # Set X-Skyfi-Api-Key from headers for multi-user
+    app.add_middleware(
+        SkyFiRequestContextMiddleware
+    )  # Set X-Skyfi-Api-Key from headers for multi-user
     import uvicorn
+
     uvicorn.run(app, host=_host, port=_port)
 
 

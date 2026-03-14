@@ -69,7 +69,9 @@ def setup_aoi_monitoring(
     if exact_key is not None and exact_key in _subscription_by_aoi:
         cached = _subscription_by_aoi[exact_key]
         if notification_url_stripped and cached.get("subscription_id"):
-            _notification_url_by_subscription_id[str(cached["subscription_id"])] = notification_url_stripped
+            _notification_url_by_subscription_id[str(cached["subscription_id"])] = (
+                notification_url_stripped
+            )
         logger.info("AOI monitoring cache hit (exact) for key %s", exact_key[:16])
         return {
             "ok": True,
@@ -82,7 +84,9 @@ def setup_aoi_monitoring(
     if coarse_key is not None and coarse_key in _subscription_by_aoi:
         cached = _subscription_by_aoi[coarse_key]
         if notification_url_stripped and cached.get("subscription_id"):
-            _notification_url_by_subscription_id[str(cached["subscription_id"])] = notification_url_stripped
+            _notification_url_by_subscription_id[str(cached["subscription_id"])] = (
+                notification_url_stripped
+            )
         logger.info("AOI monitoring cache hit (coarse) for key %s", coarse_key)
         return {
             "ok": True,
@@ -99,7 +103,10 @@ def setup_aoi_monitoring(
         "webhookUrl": webhook_url,
     }
 
-    logger.info("Registering AOI monitoring with SkyFi POST /notifications (webhookUrl=%s)", webhook_url[:60] + "..." if len(webhook_url) > 60 else webhook_url)
+    logger.info(
+        "Registering AOI monitoring with SkyFi POST /notifications (webhookUrl=%s)",
+        webhook_url[:60] + "..." if len(webhook_url) > 60 else webhook_url,
+    )
     try:
         resp = client.post("/notifications", json=body)
     except SkyFiClientError as e:
@@ -133,7 +140,9 @@ def setup_aoi_monitoring(
     result = {"ok": True, "subscription_id": subscription_id, "message": message}
 
     if notification_url_stripped and subscription_id:
-        _notification_url_by_subscription_id[subscription_id] = notification_url_stripped
+        _notification_url_by_subscription_id[subscription_id] = (
+            notification_url_stripped
+        )
 
     entry = {"subscription_id": subscription_id, "message": message}
     if exact_key is not None:
@@ -164,7 +173,10 @@ def list_aoi_monitors(client: SkyFiClient) -> dict[str, Any]:
         return _list_monitors_from_cache()
 
     if resp.status_code == 404 or resp.status_code == 501:
-        logger.info("GET /notifications not supported (%s); returning local cache", resp.status_code)
+        logger.info(
+            "GET /notifications not supported (%s); returning local cache",
+            resp.status_code,
+        )
         return _list_monitors_from_cache()
 
     if resp.status_code not in (200, 201):
@@ -208,14 +220,20 @@ def list_aoi_monitors(client: SkyFiClient) -> dict[str, Any]:
             sub_id = str(sub_id)
         aoi_wkt = item.get("aoi") or item.get("areaOfInterest") or ""
         webhook = item.get("webhookUrl") or item.get("webhook_url") or ""
-        monitors.append({
-            "subscription_id": sub_id,
-            "aoi": aoi_wkt if aoi_wkt else None,
-            "webhook_url": webhook if webhook else None,
-        })
+        monitors.append(
+            {
+                "subscription_id": sub_id,
+                "aoi": aoi_wkt if aoi_wkt else None,
+                "webhook_url": webhook if webhook else None,
+            }
+        )
 
     result: dict[str, Any] = {"ok": True, "monitors": monitors}
-    next_page = data.get("nextPage") or data.get("next_page") if isinstance(data, dict) else None
+    next_page = (
+        data.get("nextPage") or data.get("next_page")
+        if isinstance(data, dict)
+        else None
+    )
     if next_page is not None:
         result["next_page"] = next_page
     return result
@@ -229,11 +247,13 @@ def _list_monitors_from_cache() -> dict[str, Any]:
         sub_id = entry.get("subscription_id")
         if sub_id not in seen:
             seen.add(sub_id)
-            monitors.append({
-                "subscription_id": sub_id,
-                "aoi": None,
-                "webhook_url": None,
-            })
+            monitors.append(
+                {
+                    "subscription_id": sub_id,
+                    "aoi": None,
+                    "webhook_url": None,
+                }
+            )
     return {"ok": True, "monitors": monitors}
 
 
@@ -241,7 +261,8 @@ def _remove_subscription_from_cache(subscription_id: str) -> None:
     """Remove any cache entries and notification URL for this subscription_id."""
     _notification_url_by_subscription_id.pop(subscription_id, None)
     keys_to_remove = [
-        k for k, entry in _subscription_by_aoi.items()
+        k
+        for k, entry in _subscription_by_aoi.items()
         if entry.get("subscription_id") == subscription_id
     ]
     for k in keys_to_remove:

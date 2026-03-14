@@ -42,6 +42,7 @@ def calculate_aoi_price(client: SkyFiClient, aoi_wkt: str) -> dict[str, Any]:
                 logger.debug("Pricing cache hit for key %s", key[:16])
                 try:
                     from src.services import metrics as metrics_module
+
                     metrics_module.inc_cache_hits("pricing")
                 except Exception:
                     pass

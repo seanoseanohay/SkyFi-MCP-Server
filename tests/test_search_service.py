@@ -2,10 +2,8 @@
 
 from unittest.mock import MagicMock
 
-import pytest
-
-from src.services.search import search_archives
 from src.client.skyfi_client import SkyFiClient
+from src.services.search import search_archives
 
 
 def test_search_archives_returns_results_and_next_page() -> None:
@@ -14,7 +12,10 @@ def test_search_archives_returns_results_and_next_page() -> None:
     mock_resp.status_code = 200
     mock_resp.json.return_value = {
         "archives": [
-            {"archiveId": "a1", "thumbnailUrls": {"300x300": "https://example.com/1.png"}},
+            {
+                "archiveId": "a1",
+                "thumbnailUrls": {"300x300": "https://example.com/1.png"},
+            },
         ],
         "nextPage": "token123",
     }
@@ -28,7 +29,9 @@ def test_search_archives_returns_results_and_next_page() -> None:
     assert out["results"] is not None
     assert len(out["results"]) == 1
     assert out["results"][0]["archiveId"] == "a1"
-    assert out["results"][0]["thumbnailUrls"] == {"300x300": "https://example.com/1.png"}
+    assert out["results"][0]["thumbnailUrls"] == {
+        "300x300": "https://example.com/1.png"
+    }
     assert out["nextPage"] == "token123"
 
 

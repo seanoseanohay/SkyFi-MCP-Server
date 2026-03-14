@@ -42,7 +42,11 @@ def _max_cloud_from_results(results: list[dict[str, Any]]) -> int | None:
     """Extract maximum cloudCoveragePercent from a list of result items."""
     max_cloud = None
     for item in results:
-        val = item.get("cloudCoveragePercent") or item.get("cloudCoverage") or item.get("cloud_coverage")
+        val = (
+            item.get("cloudCoveragePercent")
+            or item.get("cloudCoverage")
+            or item.get("cloud_coverage")
+        )
         if val is not None:
             try:
                 pct = int(val)
@@ -53,7 +57,9 @@ def _max_cloud_from_results(results: list[dict[str, Any]]) -> int | None:
     return max_cloud
 
 
-def _add_sar_suggestion_to_feasibility(out: dict[str, Any], feasibility: dict[str, Any]) -> None:
+def _add_sar_suggestion_to_feasibility(
+    out: dict[str, Any], feasibility: dict[str, Any]
+) -> None:
     """If feasibility result has high cloud coverage, set out['sarSuggestion']."""
     results = feasibility.get("results") or feasibility.get("archives") or []
     max_cloud = _max_cloud_from_results(results)
@@ -92,6 +98,7 @@ def get_pass_prediction(
                 logger.debug("Pass prediction cache hit for key %s", cache_key[0][:16])
                 try:
                     from src.services import metrics as metrics_module
+
                     metrics_module.inc_cache_hits("pass_prediction")
                 except Exception:
                     pass
@@ -170,7 +177,11 @@ def check_feasibility(client: SkyFiClient, aoi_wkt: str) -> dict[str, Any]:
                 return {"feasibility": None, "error": str(e)}
 
             if poll_resp.status_code != 200:
-                msg = poll_resp.text[:500] if poll_resp.text else f"HTTP {poll_resp.status_code}"
+                msg = (
+                    poll_resp.text[:500]
+                    if poll_resp.text
+                    else f"HTTP {poll_resp.status_code}"
+                )
                 return {"feasibility": None, "error": f"Feasibility poll error: {msg}"}
 
             data = poll_resp.json()
@@ -189,7 +200,10 @@ def check_feasibility(client: SkyFiClient, aoi_wkt: str) -> dict[str, Any]:
 
             interval = min(interval * backoff, max_interval)
 
-        return {"feasibility": None, "error": f"Feasibility polling timed out after {timeout_sec}s"}
+        return {
+            "feasibility": None,
+            "error": f"Feasibility polling timed out after {timeout_sec}s",
+        }
 
     # Immediate result (no polling)
     out = {"feasibility": data, "error": None}

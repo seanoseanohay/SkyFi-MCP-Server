@@ -6,7 +6,9 @@ When the server runs in Docker, set SKYFI_DOWNLOAD_DIR and mount a host director
 from typing import Any
 
 from src.request_context import get_skyfi_client
-from src.services.order import download_recent_orders_to_directory as service_download_recent_orders
+from src.services.order import (
+    download_recent_orders_to_directory as service_download_recent_orders,
+)
 
 
 def download_recent_orders(

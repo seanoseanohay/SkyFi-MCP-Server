@@ -16,7 +16,9 @@ from src.request_context import (
 
 def test_set_and_get_skyfi_client_uses_context() -> None:
     """When context is set, get_skyfi_client returns a client with that key."""
-    set_request_context(api_key="header-key-123", base_url="https://custom.api.example.com")
+    set_request_context(
+        api_key="header-key-123", base_url="https://custom.api.example.com"
+    )
     try:
         client = get_skyfi_client()
         assert isinstance(client, SkyFiClient)
@@ -69,7 +71,10 @@ def test_set_request_context_with_notification_url() -> None:
         notification_url="https://hooks.slack.com/services/T00/B00/xxx",
     )
     try:
-        assert get_notification_url_from_context() == "https://hooks.slack.com/services/T00/B00/xxx"
+        assert (
+            get_notification_url_from_context()
+            == "https://hooks.slack.com/services/T00/B00/xxx"
+        )
     finally:
         clear_request_context()
 
@@ -97,7 +102,10 @@ def test_get_webhook_url_from_context() -> None:
         webhook_url="https://my-tunnel.example.com/webhooks/skyfi",
     )
     try:
-        assert get_webhook_url_from_context() == "https://my-tunnel.example.com/webhooks/skyfi"
+        assert (
+            get_webhook_url_from_context()
+            == "https://my-tunnel.example.com/webhooks/skyfi"
+        )
     finally:
         clear_request_context()
 
@@ -138,4 +146,7 @@ def test_get_derived_webhook_url_uses_mcp_public_url_when_no_request_base() -> N
     set_request_context(api_key=None)  # no request_base_url
     with patch("src.request_context.settings") as mock_settings:
         mock_settings.mcp_public_url = "https://railway-app.example.com"
-        assert get_derived_webhook_url() == "https://railway-app.example.com/webhooks/skyfi"
+        assert (
+            get_derived_webhook_url()
+            == "https://railway-app.example.com/webhooks/skyfi"
+        )

@@ -17,6 +17,7 @@ Thank you for your interest in contributing. This document gives a short overvie
 3. **Code style**
    - Keep the **thin MCP layer** rule: tool handlers in `src/tools/` should only validate input and delegate to `src/services/`. No business logic in tool files.
    - Use type hints and docstrings for public functions. See existing `src/services/` and `src/tools/` modules for patterns.
+   - Lint and format: `ruff check . --fix` and `ruff format .` (config in `pyproject.toml`). The hygiene ratchet is `pytest tests/test_hygiene.py`; keep budgets monotonic.
 
 ## What to contribute
 

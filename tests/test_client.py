@@ -3,8 +3,6 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
-
 from src.client.skyfi_client import SkyFiClient, SkyFiClientError
 
 
@@ -60,7 +58,9 @@ def test_client_raises_after_max_retries_on_5xx() -> None:
     with patch("src.client.skyfi_client.requests.Session") as session_cls:
         mock_session = MagicMock()
         session_cls.return_value = mock_session
-        mock_session.request.return_value = MagicMock(status_code=503, text="Unavailable")
+        mock_session.request.return_value = MagicMock(
+            status_code=503, text="Unavailable"
+        )
 
         client = SkyFiClient(
             api_key="k",

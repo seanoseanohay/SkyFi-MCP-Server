@@ -4,15 +4,17 @@ Thin MCP tool handler: setup_aoi_monitoring — register AOI with SkyFi for moni
 
 from typing import Any
 
+from src.config import settings
 from src.request_context import (
     get_derived_webhook_url,
     get_notification_url_from_context,
     get_skyfi_client,
     get_webhook_url_from_context,
 )
-from src.config import settings
 from src.services import aoi
-from src.services.notifications import setup_aoi_monitoring as setup_aoi_monitoring_service
+from src.services.notifications import (
+    setup_aoi_monitoring as setup_aoi_monitoring_service,
+)
 
 
 def setup_aoi_monitoring(

@@ -8,7 +8,9 @@ from src.tools.request_image_order import request_image_order
 
 WKT_SF = "POLYGON((-122.4194 37.7749, -122.4094 37.7749, -122.4094 37.7849, -122.4194 37.7849, -122.4194 37.7749))"
 # AOI ~220 sq km — within tasking range 25–500 sq km
-WKT_SF_TASKING = "POLYGON((-122.5 37.7, -122.35 37.7, -122.35 37.85, -122.5 37.85, -122.5 37.7))"
+WKT_SF_TASKING = (
+    "POLYGON((-122.5 37.7, -122.35 37.7, -122.35 37.85, -122.5 37.85, -122.5 37.7))"
+)
 
 
 def test_request_image_order_rejects_invalid_aoi() -> None:

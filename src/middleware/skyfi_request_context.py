@@ -7,7 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from src.request_context import set_request_context, clear_request_context
+from src.request_context import clear_request_context, set_request_context
 
 # Header names (case-insensitive per HTTP; Starlette normalizes to title-case)
 HEADER_API_KEY = "x-skyfi-api-key"
@@ -19,7 +19,11 @@ HEADER_NOTIFICATION_URL = "x-skyfi-notification-url"
 def _request_base_url(request: Request) -> str | None:
     """Derive scheme + host from request, honoring X-Forwarded-Proto and X-Forwarded-Host when behind a proxy."""
     proto = request.headers.get("x-forwarded-proto") or request.url.scheme
-    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+    host = (
+        request.headers.get("x-forwarded-host")
+        or request.headers.get("host")
+        or request.url.netloc
+    )
     if not host:
         return None
     # Strip port from Host if present (e.g. "localhost:8000") when we have forwarded host without port
@@ -41,7 +45,11 @@ class SkyFiRequestContextMiddleware(BaseHTTPMiddleware):
         notification_url = request.headers.get(HEADER_NOTIFICATION_URL)
         request_base_url = _request_base_url(request)
         set_request_context(
-            api_key, base_url, webhook_url, notification_url, request_base_url=request_base_url
+            api_key,
+            base_url,
+            webhook_url,
+            notification_url,
+            request_base_url=request_base_url,
         )
         try:
             return await call_next(request)

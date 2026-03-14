@@ -2,12 +2,16 @@
 
 from unittest.mock import MagicMock, patch
 
-from starlette.testclient import TestClient
-
 from src.server import mcp
 from src.services.feasibility import clear_pass_prediction_cache
-from src.services.metrics import get_metrics, inc_cache_hits, inc_rate_limit_exceeded, reset_metrics
+from src.services.metrics import (
+    get_metrics,
+    inc_cache_hits,
+    inc_rate_limit_exceeded,
+    reset_metrics,
+)
 from src.services.pricing import clear_pricing_cache
+from starlette.testclient import TestClient
 
 
 def test_metrics_endpoint_returns_json() -> None:
@@ -61,12 +65,16 @@ def test_pricing_cache_second_call_does_not_call_api() -> None:
 def test_pass_prediction_cache_second_call_does_not_call_api() -> None:
     """Same AOI + date window twice: first call hits API, second returns cached."""
     from src.client.skyfi_client import SkyFiClient
-    from src.services.feasibility import get_pass_prediction as service_get_pass_prediction
+    from src.services.feasibility import (
+        get_pass_prediction as service_get_pass_prediction,
+    )
 
     clear_pass_prediction_cache()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = {"passes": [{"satname": "SV-1", "passDate": "2026-03-10T12:00:00Z"}]}
+    mock_resp.json.return_value = {
+        "passes": [{"satname": "SV-1", "passDate": "2026-03-10T12:00:00Z"}]
+    }
     mock_resp.text = ""
     client = MagicMock(spec=SkyFiClient)
     client.post.return_value = mock_resp
