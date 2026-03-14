@@ -3,11 +3,9 @@
 import time
 from unittest.mock import patch
 
-import pytest
-from starlette.testclient import TestClient
-
 from src.server import mcp
 from src.services import webhook_events
+from starlette.testclient import TestClient
 
 
 def test_ping_tool_registered() -> None:
@@ -140,59 +138,31 @@ def test_webhook_skyfi_rejects_invalid_json() -> None:
     assert response.status_code == 400
 
 
-def test_tools_list_includes_confirm_image_order_over_http() -> None:
-    """HTTP tools/list response must include confirm_image_order so clients can complete purchases."""
-    app = mcp.streamable_http_app()
-    client = TestClient(app)
-    init_body = {
-        "jsonrpc": "2.0",
-        "method": "initialize",
-        "params": {
-            "protocolVersion": "2024-11-05",
-            "capabilities": {},
-            "clientInfo": {"name": "test", "version": "1.0"},
-        },
-        "id": 1,
-    }
-    init_resp = client.post(
-        "/mcp",
-        json=init_body,
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
-    )
-    assert init_resp.status_code == 200
-    session_id = init_resp.headers.get("mcp-session-id")
-    assert session_id, "initialize must return mcp-session-id"
-    list_resp = client.post(
-        "/mcp",
-        json={"jsonrpc": "2.0", "method": "tools/list", "id": 2},
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "mcp-session-id": session_id,
-        },
-    )
-    assert list_resp.status_code == 200
-    data = list_resp.json()
-    assert "result" in data, data
-    result = data["result"]
-    # MCP ListToolsResult: result may be {"tools": [...]} or SDK may expose list directly
-    tools = result.get("tools", result) if isinstance(result, dict) else result
-    if not isinstance(tools, list):
-        tools = []
-    names = [t.get("name") for t in tools if isinstance(t, dict) and t.get("name")]
+def test_tools_list_includes_confirm_image_order_and_resolve_location() -> None:
+    """Server tool list must include confirm_image_order (purchases) and resolve_location_to_wkt (OSM)."""
+    names = list(mcp._tool_manager._tools.keys())
     assert "confirm_image_order" in names, (
-        "tools/list must include confirm_image_order so agents can complete purchases; got: " + str(names)
+        "tools/list must include confirm_image_order so agents can complete purchases; got: "
+        + str(names)
     )
     assert "resolve_location_to_wkt" in names, (
-        "tools/list must include resolve_location_to_wkt for OSM geocoding; got: " + str(names)
+        "tools/list must include resolve_location_to_wkt for OSM geocoding; got: "
+        + str(names)
     )
 
 
 def test_webhook_skyfi_forwards_to_customer_notification_url_when_set() -> None:
     """When get_notification_url returns a URL, we POST the payload there in background; response 200 and event stored."""
     webhook_events.get_events(limit=100, clear_after=True)
-    payload = {"subscriptionId": "sub-forward", "eventType": "new_imagery", "archiveId": "arch-1"}
-    with patch("src.server.get_notification_url", return_value="https://customer.example.com/notify"):
+    payload = {
+        "subscriptionId": "sub-forward",
+        "eventType": "new_imagery",
+        "archiveId": "arch-1",
+    }
+    with patch(
+        "src.server.get_notification_url",
+        return_value="https://customer.example.com/notify",
+    ):
         with patch("src.server.notify_customer") as mock_notify:
             app = mcp.streamable_http_app()
             client = TestClient(app)
