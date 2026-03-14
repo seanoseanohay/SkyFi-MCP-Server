@@ -32,6 +32,7 @@ from src.tools.get_pass_prediction import get_pass_prediction
 from src.tools.get_user_orders import get_user_orders
 from src.tools.poll_order_status import poll_order_status
 from src.tools.request_image_order import request_image_order
+from src.tools.resolve_location_to_wkt import resolve_location_to_wkt
 from src.tools.search_imagery import search_imagery
 from src.tools.setup_aoi_monitoring import setup_aoi_monitoring
 
@@ -60,6 +61,7 @@ def ping() -> str:
 
 
 # Phase 2: core tools (thin handlers in src/tools/, logic in src/services/)
+mcp.tool()(resolve_location_to_wkt)
 mcp.tool()(search_imagery)
 mcp.tool()(calculate_aoi_price)
 # Phase 3: feasibility

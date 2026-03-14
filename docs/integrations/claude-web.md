@@ -28,6 +28,8 @@ Anthropic’s docs describe how to add a remote MCP server URL in the custom int
 
 The integration will perform `initialize` → `tools/list` → `tools/call` as needed. For image orders, the server returns a preview and only executes after human confirmation via `confirm_image_order`.
 
+**If the AI says `confirm_image_order` is not available:** Ensure the MCP server URL in your integration points to this SkyFi MCP server (not a limited third-party integration). The server exposes `confirm_image_order`; verify with the [README “Verify it’s working”](../../README.md#verify-its-working-streamable-http-uses-sessions) steps. See also [Anthropic Claude Code / Desktop troubleshooting](anthropic-claude-code.md#troubleshooting-confirm_image_order-not-available).
+
 ## References
 
 - [Anthropic: Custom integrations and remote MCP](https://support.anthropic.com/en/articles/11175166-getting-started-with-custom-integrations-using-remote-mcp)

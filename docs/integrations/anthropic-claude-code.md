@@ -84,6 +84,16 @@ Config location: macOS `~/Library/Application Support/Claude/claude_desktop_conf
 
 Claude will call `tools/list` and then `tools/call` with the appropriate tool names and arguments. For ordering, the server returns a preview and requires explicit confirmation before `confirm_image_order` is used.
 
+## Troubleshooting: confirm_image_order not available
+
+If the AI reports that **confirm_image_order is not available** (e.g. it can create previews but cannot complete purchases):
+
+1. **Use this MCP server** — Ensure your client is connected to *this* SkyFi MCP server (Claude Code or Claude Desktop with the URL and config above). Some built-in or third-party “SkyFi” integrations may expose only a subset of tools (e.g. search and preview only) and do not expose `confirm_image_order`.
+2. **Verify the tool list** — With the server running, follow the [README “Verify it’s working”](../../README.md#verify-its-working-streamable-http-uses-sessions) steps: send `initialize`, then `tools/list` with the session ID. The response must include a tool named `confirm_image_order`. If it’s missing, rebuild and redeploy the server (e.g. `docker compose up --build` or redeploy your image).
+3. **Restart the client** — After changing the MCP server URL or redeploying, restart Claude Desktop or reconnect in Claude Code so the client fetches the latest tool list.
+
+This server **does** expose `confirm_image_order`; the regression test `test_tools_list_includes_confirm_image_order_over_http` ensures it appears in the HTTP `tools/list` response.
+
 ## References
 
 - [Anthropic: Claude Code MCP](https://docs.anthropic.com/en/docs/claude-code/mcp)

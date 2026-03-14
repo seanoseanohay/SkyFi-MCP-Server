@@ -65,16 +65,34 @@ def _float(key: str, default: float) -> float:
         return default
 
 
+# Optional JSON credentials (local use). Env takes precedence.
+def _load_json_credentials() -> dict:
+    from src.credentials_loader import load_credentials_from_json
+    return load_credentials_from_json()
+
+
+_json_creds = _load_json_credentials()
+
+
+def _str_or_json(env_key: str, json_key: str, env_default: str = "") -> str:
+    """Return env value if set, else JSON credentials value, else default."""
+    v = os.environ.get(env_key, "").strip()
+    if v:
+        return v
+    return (_json_creds.get(json_key) or "").strip() or env_default
+
+
 class Settings:
     """
     Application settings loaded from environment.
     All values are read at import time from env vars.
     """
 
-    # Required
-    skyfi_api_key: str = _str("X_SKYFI_API_KEY")
-    skyfi_api_base_url: str = _str(
-        "SKYFI_API_BASE_URL", "https://app.skyfi.com/platform-api"
+    # Required (env > config/credentials.json)
+    skyfi_api_key: str = _str_or_json("X_SKYFI_API_KEY", "api_key", "")
+    skyfi_api_base_url: str = (
+        _str_or_json("SKYFI_API_BASE_URL", "api_base_url", "https://app.skyfi.com/platform-api")
+        or "https://app.skyfi.com/platform-api"
     ).rstrip("/")
 
     # Pagination
@@ -119,11 +137,11 @@ class Settings:
     skyfi_retry_count: int = _int("SKYFI_RETRY_COUNT", 3)
 
     # AOI monitoring (Phase 5) — base URL for webhook callbacks (SkyFi POSTs events here)
-    webhook_base_url: str = _str("SKYFI_WEBHOOK_BASE_URL", "").rstrip("/")
+    webhook_base_url: str = (_str_or_json("SKYFI_WEBHOOK_BASE_URL", "webhook_base_url", "") or "").rstrip("/")
     # Optional: public base URL of this server (e.g. https://your-app.railway.app). Used to derive webhook URL when not set. MCP_PUBLIC_URL or PUBLIC_URL.
     mcp_public_url: str = _str("MCP_PUBLIC_URL", os.environ.get("PUBLIC_URL", "")).strip().rstrip("/")
     # Optional: default URL we POST SkyFi events to (e.g. Slack webhook). Used when notification_url not passed to setup_aoi_monitoring.
-    notification_url: str = _str("SKYFI_NOTIFICATION_URL", "").strip()
+    notification_url: str = _str_or_json("SKYFI_NOTIFICATION_URL", "notification_url", "")
     # Coarse spatial key: centroid rounded to this many decimals (~0.001° ≈ 100 m). Same neighborhood = one subscription.
     aoi_coarse_key_decimals: int = _int("AOI_COARSE_KEY_DECIMALS", 3)
     # Max monitoring events to retain in memory for agent polling (oldest dropped when full)

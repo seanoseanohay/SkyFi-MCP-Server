@@ -401,6 +401,58 @@ def test_notifications() -> None:
         fail(f"Unexpected status {resp.status_code}: {resp.text[:300]}")
 
 
+# ── Test 6: GET /notifications (list AOI monitors) ─────────────────────────────
+
+def test_get_notifications() -> None:
+    """Validate GET /notifications (list_aoi_monitors). Shows what SkyFi returns for this account."""
+    section("Test 6 — GET /notifications (list AOI monitors)")
+    url = f"{BASE_URL}/notifications"
+    info(f"URL: {url}")
+
+    try:
+        resp = requests.get(url, headers=headers(), timeout=30)
+    except requests.exceptions.ConnectionError as exc:
+        fail(f"Connection failed (check SKYFI_API_BASE_URL): {exc}")
+        return
+    except requests.exceptions.RequestException as exc:
+        fail(f"Request failed: {exc}")
+        return
+
+    info(f"HTTP status: {resp.status_code}")
+
+    if resp.status_code == 200:
+        try:
+            data = resp.json() if resp.text else {}
+        except Exception:
+            data = {}
+        save_sample("notifications_list", data)
+        # Normalize: accept array or { notifications, subscriptions, data, items, results }
+        raw_list = (
+            data if isinstance(data, list) else
+            data.get("notifications") or data.get("subscriptions") or data.get("data")
+            or data.get("items") or data.get("results") or []
+        )
+        if not isinstance(raw_list, list):
+            raw_list = []
+        ok(f"GET /notifications returned {len(raw_list)} item(s)")
+        if raw_list:
+            first = raw_list[0] if isinstance(raw_list[0], dict) else {}
+            info(f"First item keys: {list(first.keys())}")
+            # Id field name SkyFi might use
+            sub_id = first.get("id") or first.get("subscriptionId") or first.get("notificationId")
+            if sub_id is not None:
+                info(f"First subscription id: {sub_id}")
+        else:
+            info("Empty list — no AOI monitors for this API key, or SkyFi returns only API-created subscriptions.")
+    elif resp.status_code == 404:
+        info("GET /notifications returned 404 — endpoint may not be supported; list_aoi_monitors will use local cache.")
+        info(f"Response: {resp.text[:200]}")
+    elif resp.status_code == 501:
+        info("GET /notifications returned 501 — not implemented; list_aoi_monitors will use local cache.")
+    else:
+        info(f"Unexpected status: {resp.status_code} — {resp.text[:300]}")
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main() -> int:
@@ -418,6 +470,7 @@ def main() -> int:
     test_pricing()
     test_pass_prediction()
     test_notifications()
+    test_get_notifications()
 
     section("Summary")
     info(f"Sample files saved to: {SAMPLES_DIR.relative_to(ROOT)}/")

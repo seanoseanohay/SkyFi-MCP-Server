@@ -106,6 +106,7 @@ If you use `setup_aoi_monitoring` and get a success response but **don’t see a
      `python phase0/validate_skyfi_api.py`  
      Check **Test 5 — POST /notifications** for 2xx and a subscription id.  
    - After calling `setup_aoi_monitoring`, call **`list_aoi_monitors`**. If the new subscription appears, SkyFi has it; the missing display is likely a web UI vs API difference or account mismatch.
+   - For a **staff-engineer-grade checklist** (same account, curl verification, GET vs UI behavior), see **[verification-aoi-ui-sync.md](verification-aoi-ui-sync.md)**.
 
 4. **Webhook URL must be public**  
    If SkyFi cannot reach your webhook URL (e.g. localhost, or tunnel down), they may reject or limit the subscription. Set `SKYFI_WEBHOOK_BASE_URL` to a **public** URL (e.g. Cloudflare tunnel or your deployed app). See [Local: manual tunnel](#local-manual-tunnel-today) above.
