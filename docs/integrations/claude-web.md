@@ -8,7 +8,7 @@ Use the SkyFi MCP server from [Claude Web](https://support.anthropic.com/en/arti
    - Local: `docker compose up --build` → `http://localhost:8000/mcp`
    - For Claude Web / cloud clients: deploy the server and use a public URL, e.g. `https://your-host.example.com/mcp`
 
-2. **Server env:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` (see [.env.example](../../.env.example)).
+2. **Server credentials:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` via env (see [.env.example](../../.env.example)) or, for local use, **config/credentials.json** (see [README](../../README.md)).
 
 ## Configuration
 
@@ -24,7 +24,7 @@ Anthropic’s docs describe how to add a remote MCP server URL in the custom int
 
 1. Deploy or run the SkyFi server and note the MCP URL.
 2. In Claude Web (or your custom integration), add the SkyFi MCP server using that URL.
-3. Start a conversation and ask Claude to use SkyFi tools, e.g. “Use the SkyFi tools to search for imagery over Nairobi” or “Check feasibility for this AOI.”
+3. Start a conversation and ask Claude to use SkyFi tools, e.g. “Use the SkyFi tools to search for imagery over Nairobi” (place names work via **resolve_location_to_wkt**) or “Check feasibility for this AOI.”
 
 The integration will perform `initialize` → `tools/list` → `tools/call` as needed. For image orders, the server returns a preview and only executes after human confirmation via `confirm_image_order`.
 

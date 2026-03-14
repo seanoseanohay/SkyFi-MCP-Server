@@ -8,7 +8,7 @@ Use the SkyFi MCP server with [LangGraph’s MCP agents](https://langchain-ai.gi
    - Local: `docker compose up --build` → `http://localhost:8000/mcp`
    - Production: e.g. `https://your-host.example.com/mcp`
 
-2. **Server env:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` (see [.env.example](../../.env.example)).
+2. **Server credentials:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` via env (see [.env.example](../../.env.example)) or **config/credentials.json** (see [README](../../README.md)).
 
 ## Configuration
 
@@ -24,7 +24,7 @@ See LangGraph docs for the exact API (e.g. passing a URL or transport config whe
 
 1. Start the SkyFi server.
 2. In your LangGraph app, create an agent (or node) that uses MCP tools and point it at the SkyFi MCP URL.
-3. Invoke the agent with a prompt that requires SkyFi, e.g. “Search SkyFi for imagery over London in the last 14 days” or “Check feasibility for this polygon.”
+3. Invoke the agent with a prompt that requires SkyFi, e.g. “Search SkyFi for imagery over London in the last 14 days” (place names via **resolve_location_to_wkt**) or “Check feasibility for this polygon.”
 
 The agent will use `tools/list` and `tools/call` against the SkyFi server. For image orders, use `request_image_order` to get a preview; only call `confirm_image_order` after explicit user confirmation. You can use [LangSmith](https://smith.langchain.com) for observability.
 

@@ -10,7 +10,7 @@ Use the SkyFi MCP server with [Claude Code](https://docs.anthropic.com/en/docs/c
    - Local: `docker compose up --build` → endpoint `http://localhost:8000/mcp`
    - Or deploy and use that server's URL (e.g. `https://your-host.example.com/mcp`)
 
-2. **Ensure the server has SkyFi credentials** in the server environment (e.g. `.env`): `X_SKYFI_API_KEY`, `SKYFI_API_BASE_URL` (see [.env.example](../../.env.example)).  
+2. **Ensure the server has SkyFi credentials** in the server environment (e.g. `.env`) or in **config/credentials.json** (copy from `config/credentials.json.example`; see [README](../../README.md)): `api_key` / `X_SKYFI_API_KEY`, `api_base_url` / `SKYFI_API_BASE_URL`.  
    **For AOI monitoring:** The server can auto-derive the webhook URL (where SkyFi POSTs) when the client connects via a **public URL** (e.g. `https://your-mcp.com/mcp`). It uses that host + `/webhooks/skyfi`. If the client connects via localhost, set **`SKYFI_WEBHOOK_BASE_URL`** to your public webhook URL, or **`MCP_PUBLIC_URL`** (or **`PUBLIC_URL`**) to your server’s public base URL so the server can derive it.
 
 ## Configuration
@@ -79,10 +79,11 @@ Config location: macOS `~/Library/Application Support/Claude/claude_desktop_conf
 2. In Claude Desktop: add the `skyfi` entry to `claude_desktop_config.json` with `npx`, `mcp-remote`, your MCP URL, and `--header` `X-Skyfi-Api-Key: <your-key>` (see [Claude Desktop](#claude-desktop) above). Restart Claude Desktop.
 3. In a new conversation, ask Claude to use the SkyFi tools, e.g.:
    - "Call the SkyFi ping tool to check the server."
+   - "Resolve 'Austin, TX' to WKT and then search for archive imagery there in the last 30 days." (uses `resolve_location_to_wkt` then `search_imagery`)
    - "Search for archive imagery over San Francisco in the last 30 days."
    - "Check feasibility for a 1 km² area at [WKT or coordinates]."
 
-Claude will call `tools/list` and then `tools/call` with the appropriate tool names and arguments. For ordering, the server returns a preview and requires explicit confirmation before `confirm_image_order` is used.
+Claude will call `tools/list` and then `tools/call` with the appropriate tool names and arguments. Use **`resolve_location_to_wkt`** when you want to use place names instead of raw WKT. For ordering, the server returns a preview and requires explicit confirmation before `confirm_image_order` is used.
 
 ## Troubleshooting: confirm_image_order not available
 

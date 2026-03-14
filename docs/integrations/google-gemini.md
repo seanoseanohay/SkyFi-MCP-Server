@@ -8,7 +8,7 @@ Use the SkyFi MCP server with the [Google Gemini API](https://ai.google.dev/gemi
    - Local: `docker compose up --build` → `http://localhost:8000/mcp`
    - Production: e.g. `https://your-host.example.com/mcp`
 
-2. **Server env:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` (see [.env.example](../../.env.example)).
+2. **Server credentials:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` via env (see [.env.example](../../.env.example)) or **config/credentials.json** (see [README](../../README.md)).
 
 ## Configuration
 
