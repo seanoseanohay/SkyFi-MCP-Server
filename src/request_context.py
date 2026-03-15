@@ -110,6 +110,17 @@ def get_notification_url_from_context() -> str | None:
     return None
 
 
+def get_effective_api_key_for_request() -> str:
+    """
+    Return the API key for the current request (from header or env).
+    Used for hashing tenant identity; never log or expose this value.
+    """
+    ctx = _request_context.get()
+    if ctx and ctx.api_key:
+        return ctx.api_key
+    return settings.skyfi_api_key or ""
+
+
 def clear_request_context() -> None:
     """Clear the request context (e.g. after request)."""
     _request_context.set(None)

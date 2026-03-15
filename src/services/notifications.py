@@ -3,6 +3,9 @@ Notifications service — POST /notifications for AOI monitoring.
 Registers an area of interest with SkyFi so they can POST events to our webhook.
 Deduplicates by AOI: exact key first (same shape), then coarse key (same neighborhood).
 See docs/design-aoi-subscription-dedup.md.
+
+Notification routing: persisted in SQLite (subscription_routing, tenant_preferences).
+Survives restarts; retroactive URL updates when user changes Slack URL.
 """
 
 from typing import Any
@@ -10,30 +13,32 @@ from typing import Any
 from src.client.skyfi_client import SkyFiClient, SkyFiClientError
 from src.config import get_logger
 from src.services import aoi as aoi_module
+from src.services import notification_routing_db as routing_db
 
 logger = get_logger(__name__)
 
 # Subscription cache: keys are exact (normalize_aoi_key) and/or coarse (coarse_aoi_key). Value = {subscription_id, message}.
 _subscription_by_aoi: dict[str, dict[str, Any]] = {}
 
-# Per-subscription customer notification URL: when we receive a webhook we POST the payload here (multi-tenant).
-_notification_url_by_subscription_id: dict[str, str] = {}
 
+def clear_subscription_cache(db_path: str | None = None) -> None:
+    """Clear the AOI subscription cache and optionally notification routing DB. Used in tests."""
+    import os
 
-def clear_subscription_cache() -> None:
-    """Clear the AOI subscription cache and notification URL map. Used in tests."""
     _subscription_by_aoi.clear()
-    _notification_url_by_subscription_id.clear()
+    path = db_path or os.environ.get("SKYFI_DB_PATH", "").strip()
+    if path:
+        routing_db.clear_all_routing(path)
 
 
-def get_notification_url(subscription_id: str | None) -> str | None:
+def get_notification_url(
+    subscription_id: str | None, db_path: str | None = None
+) -> str | None:
     """
-    Return the customer notification URL for a subscription, if one was registered.
+    Return the customer notification URL for a subscription (from persistent store).
     Used by the webhook handler to forward SkyFi events to the customer.
     """
-    if not subscription_id:
-        return None
-    return _notification_url_by_subscription_id.get(str(subscription_id))
+    return routing_db.get_notification_url(subscription_id, db_path=db_path)
 
 
 def setup_aoi_monitoring(
@@ -41,18 +46,23 @@ def setup_aoi_monitoring(
     aoi_wkt: str,
     webhook_url: str,
     notification_url: str | None = None,
+    api_key_hash: str | None = None,
+    db_path: str | None = None,
 ) -> dict[str, Any]:
     """
     Register AOI monitoring with SkyFi (POST /notifications).
     SkyFi will POST events to webhook_url when new imagery or events match the AOI.
     If this AOI (same geometry) is already registered, returns the cached subscription without calling SkyFi.
     If notification_url is provided, we POST each incoming SkyFi event to that URL (e.g. Slack webhook).
+    Notification routing is persisted; retroactive update when URL changes for same tenant.
 
     Args:
         client: SkyFi API client.
         aoi_wkt: WKT polygon (already validated by caller).
         webhook_url: Full URL where SkyFi should send notification events (must be reachable by SkyFi).
         notification_url: Optional URL we POST SkyFi events to (e.g. Slack, Zapier). Enables push notifications.
+        api_key_hash: Optional SHA-256 hash of API key for tenant identity (enables retroactive updates).
+        db_path: Optional DB path for tests (e.g. :memory:).
 
     Returns:
         On success: {"ok": True, "subscription_id", "message"}
@@ -65,17 +75,31 @@ def setup_aoi_monitoring(
     exact_key = aoi_module.normalize_aoi_key(aoi_wkt)
     coarse_key = aoi_module.coarse_aoi_key(aoi_wkt)
 
-    notification_url_stripped = (notification_url or "").strip()
+    notification_url_stripped = (
+        str(notification_url or "").strip()
+        if isinstance(notification_url, str)
+        else ""
+    )
+    hash_val = str(api_key_hash or "").strip() if isinstance(api_key_hash, str) else ""
+
+    def _persist_routing(sub_id: str) -> None:
+        if notification_url_stripped and sub_id and hash_val:
+            routing_db.upsert_subscription_routing(
+                sub_id, notification_url_stripped, hash_val, db_path=db_path
+            )
+            routing_db.upsert_tenant_preferences_and_retroactive(
+                hash_val, notification_url_stripped, db_path=db_path
+            )
+
     if exact_key is not None and exact_key in _subscription_by_aoi:
         cached = _subscription_by_aoi[exact_key]
-        if notification_url_stripped and cached.get("subscription_id"):
-            _notification_url_by_subscription_id[str(cached["subscription_id"])] = (
-                notification_url_stripped
-            )
+        sub_id = cached.get("subscription_id")
+        if sub_id:
+            _persist_routing(str(sub_id))
         logger.info("AOI monitoring cache hit (exact) for key %s", exact_key[:16])
         return {
             "ok": True,
-            "subscription_id": cached.get("subscription_id"),
+            "subscription_id": sub_id,
             "message": cached.get(
                 "message",
                 "AOI monitoring already enabled for this area (shared subscription). Verify with list_aoi_monitors.",
@@ -83,14 +107,13 @@ def setup_aoi_monitoring(
         }
     if coarse_key is not None and coarse_key in _subscription_by_aoi:
         cached = _subscription_by_aoi[coarse_key]
-        if notification_url_stripped and cached.get("subscription_id"):
-            _notification_url_by_subscription_id[str(cached["subscription_id"])] = (
-                notification_url_stripped
-            )
+        sub_id = cached.get("subscription_id")
+        if sub_id:
+            _persist_routing(str(sub_id))
         logger.info("AOI monitoring cache hit (coarse) for key %s", coarse_key)
         return {
             "ok": True,
-            "subscription_id": cached.get("subscription_id"),
+            "subscription_id": sub_id,
             "message": cached.get(
                 "message",
                 "AOI monitoring already enabled for this area (shared subscription). Verify with list_aoi_monitors.",
@@ -139,9 +162,12 @@ def setup_aoi_monitoring(
     )
     result = {"ok": True, "subscription_id": subscription_id, "message": message}
 
-    if notification_url_stripped and subscription_id:
-        _notification_url_by_subscription_id[subscription_id] = (
-            notification_url_stripped
+    if notification_url_stripped and subscription_id and hash_val:
+        routing_db.upsert_subscription_routing(
+            subscription_id, notification_url_stripped, hash_val, db_path=db_path
+        )
+        routing_db.upsert_tenant_preferences_and_retroactive(
+            hash_val, notification_url_stripped, db_path=db_path
         )
 
     entry = {"subscription_id": subscription_id, "message": message}
@@ -257,9 +283,11 @@ def _list_monitors_from_cache() -> dict[str, Any]:
     return {"ok": True, "monitors": monitors}
 
 
-def _remove_subscription_from_cache(subscription_id: str) -> None:
-    """Remove any cache entries and notification URL for this subscription_id."""
-    _notification_url_by_subscription_id.pop(subscription_id, None)
+def _remove_subscription_from_cache(
+    subscription_id: str, db_path: str | None = None
+) -> None:
+    """Remove any cache entries and notification routing for this subscription_id."""
+    routing_db.delete_subscription_routing(subscription_id, db_path=db_path)
     keys_to_remove = [
         k
         for k, entry in _subscription_by_aoi.items()
@@ -269,14 +297,19 @@ def _remove_subscription_from_cache(subscription_id: str) -> None:
         _subscription_by_aoi.pop(k, None)
 
 
-def cancel_aoi_monitor(client: SkyFiClient, subscription_id: str) -> dict[str, Any]:
+def cancel_aoi_monitor(
+    client: SkyFiClient,
+    subscription_id: str,
+    db_path: str | None = None,
+) -> dict[str, Any]:
     """
     Cancel AOI monitoring for a subscription (DELETE /notifications/{id}).
-    Also clears the subscription from local cache and notification URL map.
+    Also clears the subscription from local cache and notification routing.
 
     Args:
         client: SkyFi API client.
         subscription_id: The subscription ID returned by setup_aoi_monitoring or list_aoi_monitors.
+        db_path: Optional DB path for tests.
 
     Returns:
         On success: {"ok": True, "message": "..."}
@@ -295,13 +328,13 @@ def cancel_aoi_monitor(client: SkyFiClient, subscription_id: str) -> dict[str, A
         return {"ok": False, "error": str(e)}
 
     if resp.status_code in (200, 204):
-        _remove_subscription_from_cache(subscription_id)
+        _remove_subscription_from_cache(subscription_id, db_path=db_path)
         return {
             "ok": True,
             "message": "AOI monitoring cancelled. SkyFi will no longer send events for this subscription.",
         }
     if resp.status_code == 404:
-        _remove_subscription_from_cache(subscription_id)
+        _remove_subscription_from_cache(subscription_id, db_path=db_path)
         return {
             "ok": True,
             "message": "Subscription was not found on SkyFi (may already be cancelled). Local cache cleared.",

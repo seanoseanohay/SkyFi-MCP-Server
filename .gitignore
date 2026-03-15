@@ -51,6 +51,7 @@ Thumbs.db
 *.log
 *.sqlite
 *.sqlite3
+.skyfi/
 
 # MCP / Cursor (optional; uncomment if you want to ignore)
 # .cursor/

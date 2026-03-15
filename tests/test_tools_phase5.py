@@ -162,9 +162,14 @@ def test_setup_aoi_monitoring_api_error_returns_error() -> None:
     assert out["subscription_id"] is None
 
 
-def test_setup_aoi_monitoring_uses_notification_url_from_env_when_no_arg() -> None:
+def test_setup_aoi_monitoring_uses_notification_url_from_env_when_no_arg(
+    notification_db_path,
+) -> None:
     """When notification_url is omitted but SKYFI_NOTIFICATION_URL is set, we store it for the subscription."""
-    clear_subscription_cache()
+    import os
+
+    os.environ["SKYFI_DB_PATH"] = notification_db_path
+    clear_subscription_cache(notification_db_path)
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {"subscriptionId": "sub-env-notify"}
@@ -185,14 +190,19 @@ def test_setup_aoi_monitoring_uses_notification_url_from_env_when_no_arg() -> No
     assert out["error"] is None
     assert out["subscription_id"] == "sub-env-notify"
     assert (
-        get_notification_url("sub-env-notify")
+        get_notification_url("sub-env-notify", db_path=notification_db_path)
         == "https://hooks.slack.com/services/T00/B00/xxx"
     )
 
 
-def test_setup_aoi_monitoring_uses_notification_url_from_header_when_no_param() -> None:
+def test_setup_aoi_monitoring_uses_notification_url_from_header_when_no_param(
+    notification_db_path,
+) -> None:
     """When notification_url is omitted but X-Skyfi-Notification-Url header is set (request context), we use it."""
-    clear_subscription_cache()
+    import os
+
+    os.environ["SKYFI_DB_PATH"] = notification_db_path
+    clear_subscription_cache(notification_db_path)
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {"subscriptionId": "sub-header-notify"}
@@ -216,7 +226,7 @@ def test_setup_aoi_monitoring_uses_notification_url_from_header_when_no_param() 
     assert out["error"] is None
     assert out["subscription_id"] == "sub-header-notify"
     assert (
-        get_notification_url("sub-header-notify")
+        get_notification_url("sub-header-notify", db_path=notification_db_path)
         == "https://hooks.slack.com/services/HEADER/url"
     )
 

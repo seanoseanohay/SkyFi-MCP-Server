@@ -24,7 +24,7 @@ MCP server for the SkyFi satellite imagery platform. AI agents can search imager
 
 **Evals:** Tool-discoverability eval cases live in `tests/eval_cases.py` (golden, adversarial, multi_tool, multi_step). Run structural checks with `pytest tests/test_evals.py -v`. To run **LLM evals** (model must pick the right tools for each prompt): install `pip install -r requirements-eval.txt`, set `OPENAI_API_KEY`, then `python -m scripts.llm_eval_runner --limit 5` or `--category golden`. Use `--dry-run` to fetch tools without calling the API. See `scripts/llm_eval_runner.py` for options (`--mcp-url`, `--model`, `--id`).
 
-**Push notifications (multi-tenant):** When setting up AOI monitoring, pass **notification_url** (e.g. Slack incoming webhook, Zapier) to `setup_aoi_monitoring`, or set **SKYFI_NOTIFICATION_URL** in your environment so it’s used by default. We POST each SkyFi event to that URL so you get notified without polling. You can also send the **X-Skyfi-Notification-Url** request header (e.g. from Claude config); precedence: param → header → env.
+**Push notifications (multi-tenant):** When setting up AOI monitoring, pass **notification_url** (e.g. Slack incoming webhook, Zapier) to `setup_aoi_monitoring`, or set **SKYFI_NOTIFICATION_URL** in your environment so it’s used by default. We POST each SkyFi event to that URL so you get notified without polling. You can also send the **X-Skyfi-Notification-Url** request header (e.g. from Claude config); precedence: param → header → env. The header is not sent automatically—your MCP client must be configured to send `X-Skyfi-Notification-Url`; when you call `setup_aoi_monitoring` we store that URL in memory for that subscription so when SkyFi POSTs (even hours later) we know where to send. Per-subscription URLs are in-memory only (lost on server restart). For delivery that survives restarts, set **SKYFI_NOTIFICATION_URL** in the server `.env`—we use it as fallback so every event still gets forwarded.
 
 **Multi-user deployment:** For a shared public URL (e.g. behind Cloudflare), clients send their SkyFi API key in the **`X-Skyfi-Api-Key`** request header; optional **`X-Skyfi-Notification-Url`** for push notifications. If missing, the server uses env (single-tenant). See [docs/integrations.md](docs/integrations.md).
 
@@ -160,6 +160,12 @@ Phase 5 is only *really* validated when the SkyFi API accepts our `POST /notific
 ## Testing from the customer side (inbound webhook)
 
 The **only** thing left for Phase 5 is receiving a **real** callback from SkyFi when they have new imagery for a registered AOI. Until then, we verify the path by mocking the callback.
+
+**Quick checklist — AOI alert + push notification**
+
+1. **Webhook URL** — In `.env`, `SKYFI_WEBHOOK_BASE_URL` must be a single URL, e.g. `https://your-tunnel.example.com/webhooks/skyfi` (no double `https://`). Required for `setup_aoi_monitoring` and for SkyFi to send real callbacks.
+2. **See an AOI alert in the agent** — With the server running, run `./scripts/mock_skyfi_webhook.sh`, then call the MCP tool **`get_monitoring_events`** (e.g. from Claude). You should see the mocked event in the response.
+3. **Push notification (e.g. Slack)** — Add to `.env`: `SKYFI_NOTIFICATION_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL`, restart the server, then run `./scripts/mock_skyfi_webhook.sh` again. A POST is sent to that URL (Slack shows the JSON; you can use Zapier or a formatter to pretty-print). Without `SKYFI_NOTIFICATION_URL` (or `notification_url` on `setup_aoi_monitoring`), events are only stored for `get_monitoring_events` and no push is sent.
 
 **For demo: mock SkyFi callback (recommended)**
 

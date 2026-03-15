@@ -10,7 +10,7 @@
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BASE_URL="${WEBHOOK_BASE_URL:-http://localhost:8000}"
+BASE_URL="${WEBHOOK_BASE_URL:-http://keenermcp.com/mcp}"
 URL="${BASE_URL%/}/webhooks/skyfi"
 PAYLOAD_FILE="$PROJECT_ROOT/scripts/mock_skyfi_webhook_payload.json"
 
@@ -23,7 +23,8 @@ echo "Mocking SkyFi callback: POST $URL"
 resp=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
   -H "Content-Type: application/json" \
   -d @"$PAYLOAD_FILE")
-body=$(echo "$resp" | head -n -1)
+# Portable: all but last line (body); last line (HTTP code). BSD head doesn't support -n -1.
+body=$(echo "$resp" | sed '$d')
 code=$(echo "$resp" | tail -n 1)
 
 if [ "$code" = "200" ]; then
