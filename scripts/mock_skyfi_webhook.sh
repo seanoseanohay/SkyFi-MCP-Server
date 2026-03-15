@@ -10,7 +10,7 @@
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BASE_URL="${WEBHOOK_BASE_URL:-http://keenermcp.com/mcp}"
+BASE_URL="${WEBHOOK_BASE_URL:-http://keenermcp.com/}"
 URL="${BASE_URL%/}/webhooks/skyfi"
 PAYLOAD_FILE="$PROJECT_ROOT/scripts/mock_skyfi_webhook_payload.json"
 
