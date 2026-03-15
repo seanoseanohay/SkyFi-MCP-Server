@@ -15,10 +15,11 @@ from mcp.server.fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from src.config import get_logger, setup_logging
+from src.config import get_logger, settings, setup_logging
 from src.services import metrics as metrics_module
 from src.services import webhook_events
 from src.services.customer_notify import notify_customer
+from src.services.monitoring_invites import build_purchase_invitation
 from src.services.notifications import get_notification_url
 from src.tools.calculate_aoi_price import calculate_aoi_price
 from src.tools.cancel_aoi_monitor import cancel_aoi_monitor
@@ -107,11 +108,18 @@ async def skyfi_webhook(request: Request) -> Response:
     except (json.JSONDecodeError, ValueError) as e:
         logger.warning("Webhook invalid JSON: %s", e)
         return JSONResponse({"ok": False, "error": "Invalid JSON"}, status_code=400)
-    webhook_events.append_event(payload)
+    invitation = build_purchase_invitation(payload)
+    webhook_events.append_event(payload, purchase_invitation=invitation)
     sub_id = payload.get("subscriptionId") or payload.get("subscription_id")
-    customer_url = get_notification_url(sub_id)
+    customer_url = get_notification_url(sub_id) or (
+        (getattr(settings, "notification_url", "") or "").strip() or None
+    )
     if customer_url:
-        asyncio.create_task(asyncio.to_thread(notify_customer, customer_url, payload))
+        forwarded_payload = dict(payload)
+        forwarded_payload["skyfi_purchase_invitation"] = invitation
+        asyncio.create_task(
+            asyncio.to_thread(notify_customer, customer_url, forwarded_payload)
+        )
     return JSONResponse({"ok": True}, status_code=200)
 
 

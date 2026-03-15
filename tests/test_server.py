@@ -1,7 +1,7 @@
 """Tests for MCP server (tool registration and webhook route)."""
 
 import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from src.server import mcp
 from src.services import webhook_events
@@ -173,9 +173,38 @@ def test_webhook_skyfi_forwards_to_customer_notification_url_when_set() -> None:
     events = webhook_events.get_events(limit=1)
     assert len(events) == 1
     assert events[0]["payload"] == payload
+    assert events[0]["purchase_invitation"]["archive_id"] == "arch-1"
     mock_notify.assert_called_once()
     assert mock_notify.call_args[0][0] == "https://customer.example.com/notify"
-    assert mock_notify.call_args[0][1] == payload
+    forwarded_payload = mock_notify.call_args[0][1]
+    assert forwarded_payload["subscriptionId"] == "sub-forward"
+    assert forwarded_payload["archiveId"] == "arch-1"
+    assert (
+        forwarded_payload["skyfi_purchase_invitation"]["should_prompt_purchase"] is True
+    )
+
+
+def test_webhook_skyfi_forwards_to_default_notification_url_when_sub_has_none() -> None:
+    """When get_notification_url(sub_id) is None but settings.notification_url is set, forward to default (e.g. mock test)."""
+    webhook_events.get_events(limit=100, clear_after=True)
+    payload = {
+        "subscriptionId": "demo-sub-001",
+        "eventType": "new_imagery",
+        "archiveId": "arch-demo",
+    }
+    default_settings = MagicMock()
+    default_settings.notification_url = "https://hooks.slack.com/default"
+    with patch("src.server.get_notification_url", return_value=None):
+        with patch("src.server.settings", default_settings):
+            with patch("src.server.notify_customer") as mock_notify:
+                app = mcp.streamable_http_app()
+                client = TestClient(app)
+                response = client.post("/webhooks/skyfi", json=payload)
+                time.sleep(0.15)
+    assert response.status_code == 200
+    mock_notify.assert_called_once()
+    assert mock_notify.call_args[0][0] == "https://hooks.slack.com/default"
+    assert mock_notify.call_args[0][1]["skyfi_purchase_invitation"]["archive_id"] == "arch-demo"
 
 
 def test_get_monitoring_events_returns_empty_when_no_events() -> None:

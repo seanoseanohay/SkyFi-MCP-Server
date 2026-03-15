@@ -29,6 +29,7 @@ code=$(echo "$resp" | tail -n 1)
 if [ "$code" = "200" ]; then
   echo "OK ($code) $body"
   echo "Event stored. Call get_monitoring_events via MCP to see it."
+  echo "If SKYFI_NOTIFICATION_URL is set (e.g. Slack webhook), a notification was sent."
 else
   echo "HTTP $code" >&2
   echo "$body" >&2

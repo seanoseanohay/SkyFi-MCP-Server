@@ -1,0 +1,6 @@
+# Optional deps for running LLM evals (scripts/llm_eval_runner.py).
+# Install: pip install -r requirements-eval.txt
+# Requires OPENAI_API_KEY in the environment.
+
+openai>=1.0.0
+# For --mcp-url (live server): requests (usually already present)

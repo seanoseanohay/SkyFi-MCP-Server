@@ -17,6 +17,7 @@ def test_append_and_get_events() -> None:
     assert out[0]["payload"]["type"] == "second"
     assert out[1]["payload"]["type"] == "first"
     assert "received_at" in out[0]
+    assert "purchase_invitation" in out[0]
 
 
 def test_get_events_respects_limit() -> None:
@@ -47,3 +48,20 @@ def test_event_count() -> None:
         assert webhook_events.event_count() == 0
         webhook_events.append_event({})
         assert webhook_events.event_count() == 1
+
+
+def test_append_event_adds_purchase_invitation_for_new_imagery() -> None:
+    """Stored events include a computed purchase invitation helper."""
+    with patch.object(webhook_events.settings, "monitoring_events_max", 10):
+        webhook_events.get_events(limit=100, clear_after=True)
+        webhook_events.append_event(
+            {
+                "subscriptionId": "sub-1",
+                "eventType": "new_imagery",
+                "archiveId": "arch-1",
+            }
+        )
+        out = webhook_events.get_events(limit=1)
+    invitation = out[0]["purchase_invitation"]
+    assert invitation["should_prompt_purchase"] is True
+    assert invitation["archive_id"] == "arch-1"
