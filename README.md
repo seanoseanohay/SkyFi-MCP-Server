@@ -125,6 +125,16 @@ You should see a result containing `"pong"`.
 SESSION=$(curl -s -D - -X POST http://localhost:8000/mcp -H "Content-Type: application/json" -H "Accept: application/json" -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}' | grep -i mcp-session-id | tr -d '\r' | cut -d' ' -f2); curl -s -X POST http://localhost:8000/mcp -H "Content-Type: application/json" -H "Accept: application/json" -H "mcp-session-id: $SESSION" -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
 ```
 
+**Check that the MCP is working (deployed server):**
+
+- **Health:** `GET /` or `GET /health` returns 200 and JSON with `"status": "ok"`, `"mcp": "/mcp"`, `"connect": "/connect"`. Use this to confirm the server is up (e.g. from a load balancer or browser). If your host reserves the root path (e.g. platform landing page), use **`/health`** instead.
+- **Full MCP check:** Run **`scripts/verify_mcp.py`** against your deployed base URL. It runs initialize → tools/list → tools/call ping and exits 0 only if all succeed.
+  ```bash
+  MCP_URL=https://www.keenermcp.com python scripts/verify_mcp.py
+  # or: python scripts/verify_mcp.py https://www.keenermcp.com
+  ```
+  Success output: `ok: MCP at https://www.keenermcp.com/mcp — initialize, tools/list (N tools), ping -> pong`
+
 ### Notes
 
 - The container uses the **same entrypoint** as local: `python -m src.server` (streamable-http on port 8000).

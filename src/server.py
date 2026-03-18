@@ -100,6 +100,27 @@ mcp.tool()(cancel_aoi_monitor)
 mcp.tool()(get_monitoring_events)
 
 
+_HEALTH_PAYLOAD = {
+    "status": "ok",
+    "service": "SkyFi MCP Server",
+    "mcp": "/mcp",
+    "connect": "/connect",
+    "docs": "See README and docs/ for usage.",
+}
+
+
+@mcp.custom_route("/", methods=["GET"])
+async def root_health(_request: Request) -> Response:
+    """Health check and service info. Returns 200 so load balancers and humans can confirm the server is up."""
+    return JSONResponse(_HEALTH_PAYLOAD, status_code=200)
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health(_request: Request) -> Response:
+    """Dedicated health endpoint. Use when the host reserves GET / (e.g. platform landing page)."""
+    return JSONResponse(_HEALTH_PAYLOAD, status_code=200)
+
+
 @mcp.custom_route("/webhooks/skyfi", methods=["POST"])
 async def skyfi_webhook(request: Request) -> Response:
     """Receive SkyFi AOI monitoring events (POST from SkyFi). Store for agents; forward to customer URL if set."""

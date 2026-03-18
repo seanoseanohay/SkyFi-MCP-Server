@@ -248,6 +248,30 @@ def test_get_monitoring_events_validates_limit() -> None:
     assert r3.status_code == 400
 
 
+def test_root_health_returns_200_and_service_info() -> None:
+    """GET / returns 200 with status, mcp and connect paths."""
+    app = mcp.streamable_http_app()
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get("status") == "ok"
+    assert data.get("mcp") == "/mcp"
+    assert data.get("connect") == "/connect"
+
+
+def test_health_endpoint_returns_same_payload_as_root() -> None:
+    """GET /health returns 200 with same JSON as GET / (for hosts that reserve /)."""
+    app = mcp.streamable_http_app()
+    client = TestClient(app)
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get("status") == "ok"
+    assert data.get("mcp") == "/mcp"
+    assert data.get("connect") == "/connect"
+
+
 def test_connect_get_returns_html_form() -> None:
     """GET /connect returns HTML form for web connect flow."""
     app = mcp.streamable_http_app()
