@@ -154,5 +154,8 @@ class Settings:
     # Max monitoring events to retain in memory for agent polling (oldest dropped when full)
     monitoring_events_max: int = _int("MONITORING_EVENTS_MAX", 100)
 
+    # Web connect flow: session token TTL (seconds). Default 30 days. 0 = use default.
+    session_token_ttl_seconds: int = _int("SESSION_TOKEN_TTL_SECONDS", 0)
+
 
 settings = Settings()

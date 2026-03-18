@@ -42,6 +42,8 @@ MCP server for the SkyFi satellite imagery platform. AI agents can search imager
 
 **Deployed (shared) mode:** The server is hosted at a public URL (e.g. Railway or your own domain). Multiple users can connect to the same server. Each user must send their own SkyFi API key on every request using the **`X-Skyfi-Api-Key`** header. If the header is missing, the server falls back to `X_SKYFI_API_KEY` from its environment (if set), which is usually not what you want when many users share one URL. See [docs/integrations.md](docs/integrations.md) and the [Claude Desktop guide](docs/integrations/anthropic-claude-code.md) for how to send the header (e.g. `npx mcp-remote` with `--header`).
 
+**Web clients (Claude in browser, ChatGPT in browser):** CLI mode is unchanged (config file or `X-Skyfi-Api-Key` header). For web clients that cannot use a config file, use the **web connect flow**: open **GET /connect** on your deployed server (e.g. `https://your-mcp.example.com/connect`), enter your SkyFi API key once, and get a **session token**. Send that token as **`Authorization: Bearer <token>`** or **`X-Skyfi-Session-Token`** when connecting to the MCP from the web client. See [docs/web-connect.md](docs/web-connect.md).
+
 **Download order images to disk (MCP):** Use the MCP tools so Claude (or any agent) can save files for you:
 - **`download_recent_orders(output_directory, limit?, deliverable_type?)`** — downloads recent orders into that directory (files: `skyfi-{order_code}.png`).
 - **`download_order_file(order_id, deliverable_type, output_path)`** — downloads one order to a specific path.

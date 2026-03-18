@@ -13,7 +13,7 @@ import os
 
 from mcp.server.fastmcp import FastMCP
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import HTMLResponse, JSONResponse, Response
 
 from src.config import get_logger, settings, setup_logging
 from src.services import metrics as metrics_module
@@ -37,6 +37,7 @@ from src.tools.request_image_order import request_image_order
 from src.tools.resolve_location_to_wkt import resolve_location_to_wkt
 from src.tools.search_imagery import search_imagery
 from src.tools.setup_aoi_monitoring import setup_aoi_monitoring
+from src.services.session_store import create_session
 
 setup_logging()
 logger = get_logger(__name__)
@@ -156,6 +157,81 @@ async def monitoring_events_http(request: Request) -> Response:
         )
     events = webhook_events.get_events(limit=limit, clear_after=clear_after)
     return JSONResponse({"events": events, "count": len(events), "error": None})
+
+
+_CONNECT_HTML = """<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Connect SkyFi</title></head>
+<body>
+<h1>Connect SkyFi (web / MCP)</h1>
+<p>Use this to get a session token for Claude in the browser, ChatGPT, or other web clients that cannot use a config file.</p>
+<form method="post" action="/connect">
+  <p><label>SkyFi API key (required) <input type="password" name="api_key" required placeholder="from app.skyfi.com My Profile"></label></p>
+  <p><label>API base URL (optional) <input type="text" name="api_base_url" placeholder="https://app.skyfi.com/platform-api"></label></p>
+  <p><label>Webhook base URL (optional) <input type="text" name="webhook_base_url" placeholder="https://your-app.example.com/webhooks/skyfi"></label></p>
+  <p><label>Notification URL (optional, e.g. Slack) <input type="text" name="notification_url" placeholder="https://hooks.slack.com/..."></label></p>
+  <p><button type="submit">Get session token</button></p>
+</form>
+<p><small>Your API key is stored only in memory and is used only to call the SkyFi API. Use the token as <code>Authorization: Bearer &lt;token&gt;</code> when connecting to this MCP server from a web client.</small></p>
+</body>
+</html>
+"""
+
+
+@mcp.custom_route("/connect", methods=["GET"])
+async def connect_get(_request: Request) -> Response:
+    """Serve a simple form to connect SkyFi and get a session token (web flow)."""
+    return HTMLResponse(_CONNECT_HTML)
+
+
+@mcp.custom_route("/connect", methods=["POST"])
+async def connect_post(request: Request) -> Response:
+    """
+    Create a session from API key (and optional URLs). Returns session_token for use as
+    Authorization: Bearer <token> or X-Skyfi-Session-Token. CLI mode is unchanged (header/env).
+    """
+    try:
+        content_type = request.headers.get("content-type", "") or ""
+        if "application/json" in content_type:
+            body = await request.json()
+            api_key = (body.get("api_key") or "").strip()
+            base_url = (body.get("api_base_url") or "").strip() or None
+            webhook_url = (body.get("webhook_base_url") or body.get("webhook_url") or "").strip() or None
+            notification_url = (body.get("notification_url") or "").strip() or None
+        else:
+            form = await request.form()
+            api_key = (form.get("api_key") or "").strip()
+            base_url = (form.get("api_base_url") or "").strip() or None
+            webhook_url = (form.get("webhook_base_url") or form.get("webhook_url") or "").strip() or None
+            notification_url = (form.get("notification_url") or "").strip() or None
+        if not api_key:
+            return JSONResponse(
+                {"ok": False, "error": "api_key is required"},
+                status_code=400,
+            )
+        token, expires_in = create_session(
+            api_key,
+            base_url=base_url,
+            webhook_url=webhook_url,
+            notification_url=notification_url,
+        )
+        return JSONResponse(
+            {
+                "ok": True,
+                "session_token": token,
+                "expires_in_seconds": expires_in,
+                "usage": "Send as Authorization: Bearer <session_token> or X-Skyfi-Session-Token header when calling the MCP server.",
+            },
+            status_code=201,
+        )
+    except ValueError as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+    except Exception as e:
+        logger.exception("Connect POST failed")
+        return JSONResponse(
+            {"ok": False, "error": "Server error"},
+            status_code=500,
+        )
 
 
 def main() -> None:

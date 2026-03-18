@@ -52,7 +52,9 @@ load_dotenv()
 
 ### Option 1: Hosted MCP (Remote Server via Responses API)
 
-`HostedMCPTool` forwards tool calls to a remote server through OpenAI's infrastructure. No local process is required. Authentication headers are passed directly in the tool config:
+`HostedMCPTool` forwards tool calls to a remote server through OpenAI's infrastructure. No local process is required. Authentication headers are passed directly in the tool config.
+
+**SkyFi MCP (web/cloud):** If the remote server is the SkyFi MCP server and you are not using a local config file, use the **web connect flow**: open **GET /connect** on your SkyFi MCP server (e.g. `https://your-mcp.example.com/connect`), enter your SkyFi API key once, and get a **session token**. Pass it in headers as **`Authorization: Bearer <session_token>`** or **`X-Skyfi-Session-Token: <session_token>`**. See [web-connect.md](../web-connect.md).
 
 ```python
 import asyncio
@@ -178,7 +180,7 @@ HostedMCPTool(
 
 | Mode | Class | Auth Method |
 |---|---|---|
-| Hosted (OpenAI infra) | `HostedMCPTool` | `headers` in `tool_config` |
+| Hosted (OpenAI infra) | `HostedMCPTool` | `headers` in `tool_config` (for SkyFi: use session token from [web connect](../web-connect.md)) |
 | Local stdio | `MCPServerStdio` | `env` in `params` |
 | Local / remote HTTP | `MCPServerStreamableHttp` | `headers` in `params` |
 | Local SSE | `MCPServerSse` | `headers` in `params` |

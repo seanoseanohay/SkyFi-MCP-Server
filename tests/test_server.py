@@ -246,3 +246,40 @@ def test_get_monitoring_events_validates_limit() -> None:
     assert r2.status_code == 400
     r3 = client.get("/monitoring/events?limit=not_a_number")
     assert r3.status_code == 400
+
+
+def test_connect_get_returns_html_form() -> None:
+    """GET /connect returns HTML form for web connect flow."""
+    app = mcp.streamable_http_app()
+    client = TestClient(app)
+    response = client.get("/connect")
+    assert response.status_code == 200
+    assert "Connect SkyFi" in response.text
+    assert "api_key" in response.text
+    assert 'action="/connect"' in response.text
+
+
+def test_connect_post_requires_api_key() -> None:
+    """POST /connect without api_key returns 400."""
+    app = mcp.streamable_http_app()
+    client = TestClient(app)
+    response = client.post("/connect", json={})
+    assert response.status_code == 400
+    assert response.json().get("error") == "api_key is required"
+
+
+def test_connect_post_returns_session_token() -> None:
+    """POST /connect with api_key returns 201 and session_token (web flow)."""
+    app = mcp.streamable_http_app()
+    client = TestClient(app)
+    response = client.post(
+        "/connect",
+        json={"api_key": "test-key-123", "notification_url": "https://hooks.slack.com/x"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data.get("ok") is True
+    assert "session_token" in data
+    assert len(data["session_token"]) > 20
+    assert data.get("expires_in_seconds", 0) > 0
+    assert "Bearer" in (data.get("usage") or "")

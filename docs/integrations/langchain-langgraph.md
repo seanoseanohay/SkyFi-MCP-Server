@@ -77,7 +77,7 @@ async def main():
                 "args": ["/path/to/my_server.py"],
                 "transport": "stdio",
             },
-            # Remote HTTP server with auth header
+            # Remote HTTP server with auth header (SkyFi: use session token from GET /connect — see web-connect.md)
             "my-remote-tool": {
                 "url": "https://my-mcp-server.example.com/mcp",
                 "transport": "streamable_http",
@@ -190,5 +190,5 @@ In `langgraph.json`, point to it:
 | Transport | Config Key | Auth Method |
 |---|---|---|
 | Local process | `stdio` | `env` dict in server config |
-| Remote HTTP | `streamable_http` | `headers` dict in server config |
+| Remote HTTP | `streamable_http` | `headers` dict in server config (SkyFi: [web connect](../web-connect.md) session token) |
 | Remote SSE (legacy) | `sse` | `headers` dict in server config |

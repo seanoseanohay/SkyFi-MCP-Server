@@ -85,7 +85,9 @@ await mcpClient.close();
 
 ### Option 2: Streamable HTTP (Remote MCP Server)
 
-Use the default HTTP transport for remote servers. Pass auth headers directly:
+Use the default HTTP transport for remote servers. Pass auth headers directly.
+
+**SkyFi MCP (web / server):** If the remote server is the SkyFi MCP server and you do not have the SkyFi API key in server env (e.g. multi-tenant or user-specific auth), use the **web connect flow**: your user opens **GET /connect** on your SkyFi MCP server, enters their API key once, and gets a **session token**. Store that token (e.g. in the user's session) and pass it in headers as **`Authorization: Bearer <session_token>`** or **`X-Skyfi-Session-Token: <session_token>`**. See [web-connect.md](../web-connect.md).
 
 ```typescript
 import { experimental_createMCPClient as createMCPClient, generateText } from "ai";
@@ -190,5 +192,5 @@ export async function POST(req: Request) {
 | Transport | Config | Auth Method |
 |---|---|---|
 | Local stdio | `StdioTransport` | `env` in transport config |
-| Remote HTTP | `{ type: "http", url }` | `headers` in transport config |
+| Remote HTTP | `{ type: "http", url }` | `headers` in transport config (for SkyFi: [web connect](../web-connect.md) session token) |
 | Remote SSE (legacy) | `{ type: "sse", url }` | `headers` in transport config |

@@ -2,13 +2,15 @@
 
 Use the SkyFi MCP server with the [Google Gemini API](https://ai.google.dev/gemini-api/docs/function-calling) and MCP / function-calling integration.
 
+**Web / no config file:** If you are connecting from a browser, a cloud app, or any context where you cannot use a local config file or send `X-Skyfi-Api-Key` from the client, use the **web connect flow**: open **GET /connect** on your deployed SkyFi MCP server, enter your SkyFi API key once, get a **session token**, and send **`Authorization: Bearer <session_token>`** or **`X-Skyfi-Session-Token: <session_token>`** in the MCP client headers. See [web-connect.md](../web-connect.md).
+
 ## Setup
 
 1. **Run the SkyFi MCP server** at a URL reachable by your app:
    - Local: `docker compose up --build` → `http://localhost:8000/mcp`
    - Production: e.g. `https://your-host.example.com/mcp`
 
-2. **Server credentials:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` via env (see [.env.example](../../.env.example)) or **config/credentials.json** (see [README](../../README.md)).
+2. **Server credentials:** Set `X_SKYFI_API_KEY` and `SKYFI_API_BASE_URL` via env (see [.env.example](../../.env.example)) or **config/credentials.json** (see [README](../../README.md)) for single-tenant. For web/multi-user, use the web connect flow above.
 
 ## Configuration
 
@@ -61,6 +63,7 @@ The model will issue function calls that your app translates to `tools/call`; se
 
 ## References
 
+- [Web connect flow (session token)](../web-connect.md) — for browser / cloud when you can't use a config file
 - [Google Gemini: Function calling](https://ai.google.dev/gemini-api/docs/function-calling)
 - [SkyFi MCP README](../../README.md)
 - [Integrations index](../integrations.md)

@@ -61,19 +61,34 @@ After saving the config file, restart Claude Code for the changes to take effect
 
 ## Setup in the Claude.ai Web UI
 
-### Current Limitation
+The Claude.ai web UI is a **browser integration** — you cannot use a local config file. Use the **web connect flow** when the UI supports sending an auth header.
 
-The Claude.ai web UI does **not** currently support configuring custom HTTP headers for remote MCP connections. When you navigate to **Settings → Integrations** and select SkyFi, you will only see the available tool calls — there is no field to enter headers like `X-Skyfi-Api-Key`.
+### Web connect flow (when the web UI supports auth)
+
+1. **Deploy** the SkyFi MCP server at a public URL (e.g. `https://your-mcp.example.com/mcp`).
+2. Open **`https://your-mcp.example.com/connect`** in your browser. Enter your SkyFi API key (from [app.skyfi.com](https://app.skyfi.com) → My Profile) and optionally notification URL. Submit the form.
+3. Copy the **session token** returned by the server.
+4. In Claude.ai **Settings → Integrations**, when adding the SkyFi MCP server, if the UI offers a field for “API key”, “Bearer token”, or custom headers, use **`Authorization: Bearer <session_token>`** or **`X-Skyfi-Session-Token: <session_token>`** (paste the token). You never paste your raw SkyFi API key into the web UI.
+
+See **[web-connect.md](../web-connect.md)** for full details.
+
+### Current limitation
+
+The Claude.ai web UI does **not** currently support configuring custom HTTP headers for remote MCP connections. When you navigate to **Settings → Integrations** and select SkyFi, you will only see the available tool calls — there is no field to enter headers like `X-Skyfi-Api-Key` or a session token.
 
 > ⚠️ **Note:** This is a known limitation of the Claude.ai integrations UI as of early 2026. Anthropic has not yet exposed header configuration for URL-based MCP servers in the web interface.
 
-### Workaround Options
+### Workaround options
 
-#### Option 1: Use Claude Code (Recommended)
+#### Option 1: Use Claude Code (recommended for now)
 
 The most reliable solution is to use Claude Code for any workflows that require SkyFi. Follow the Claude Code setup steps above — all SkyFi tools will be fully functional in that environment.
 
-#### Option 2: Reconnect the Integration
+#### Option 2: Use web connect when headers are supported
+
+If Anthropic adds support for a single “API key” or “Bearer token” field (or custom headers) for remote MCP in the web UI, use the web connect flow above: get a session token from **GET /connect** and paste that token (not your raw SkyFi API key) into the field.
+
+#### Option 3: Reconnect the integration
 
 If SkyFi previously worked in the web UI via an OAuth or token-based flow, try disconnecting and reconnecting:
 
@@ -83,9 +98,9 @@ If SkyFi previously worked in the web UI via an OAuth or token-based flow, try d
 
 This re-triggers the auth flow and may restore a working connection if credentials have expired.
 
-#### Option 3: Request Header Support from Anthropic
+#### Option 4: Request header support from Anthropic
 
-If the web UI is important to your workflow, submit feedback to Anthropic requesting custom header support for remote MCP servers. Use the **thumbs-down button** on any Claude.ai response to open the feedback form.
+If the web UI is important to your workflow, submit feedback to Anthropic requesting custom header (or Bearer token) support for remote MCP servers. Use the **thumbs-down button** on any Claude.ai response to open the feedback form.
 
 ---
 
@@ -93,5 +108,5 @@ If the web UI is important to your workflow, submit feedback to Anthropic reques
 
 | Environment | Header Config Supported? | Recommendation |
 |---|---|---|
-| Claude Code | ✅ Yes — via `args` in config | Recommended for SkyFi |
-| Claude.ai Web UI | ❌ Not supported (UI limitation) | Use Claude Code instead |
+| Claude Code | ✅ Yes — via `args` in config | Recommended for SkyFi (config file) |
+| Claude.ai Web UI | ❌ Not yet (UI limitation) | Use Claude Code for now; when supported, use [web connect](../web-connect.md) session token |

@@ -90,7 +90,9 @@ root_agent = LlmAgent(
 
 ### Option 2: SSE / Streamable HTTP (Remote MCP Server)
 
-Use `SseConnectionParams` or `StreamableHTTPServerParams` for remote servers. Authentication headers are passed via `transportOptions`:
+Use `SseConnectionParams` or `StreamableHTTPServerParams` for remote servers. Authentication headers are passed via `transportOptions`.
+
+**SkyFi MCP (remote / cloud):** When connecting to a deployed SkyFi MCP server without a local config file (e.g. cloud-deployed agent), use the **web connect flow**: open **GET /connect** on the SkyFi MCP server, enter the SkyFi API key once, get a **session token**, and pass **`Authorization: Bearer <session_token>`** or **`X-Skyfi-Session-Token: <session_token>`** in the headers. See [web-connect.md](../web-connect.md).
 
 ```python
 from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPServerParams
@@ -165,5 +167,5 @@ load_dotenv()
 | Connection Type | Class | Use Case |
 |---|---|---|
 | Local process | `StdioConnectionParams` | stdio MCP servers via `npx` or `python` |
-| Remote server | `StreamableHTTPServerParams` | Hosted MCP servers over HTTP |
+| Remote server | `StreamableHTTPServerParams` | Hosted MCP servers over HTTP (SkyFi: [web connect](../web-connect.md) for session token) |
 | Remote server (legacy) | `SseConnectionParams` | SSE-based remote MCP servers |
