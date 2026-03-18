@@ -178,10 +178,64 @@ _CONNECT_HTML = """<!DOCTYPE html>
 """
 
 
+def _connect_success_html(token: str, expires_in: int, mcp_base_url: str) -> str:
+    """HTML shown after form submit: copy-friendly token and usage for this server."""
+    escaped_token = (
+        token.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    )
+    return f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Session token — Connect SkyFi</title></head>
+<body>
+<h1>Session token created</h1>
+<p>Use this token when connecting to the MCP from ChatGPT, Claude in the browser, or another web client. Do not share it.</p>
+<p><label>Session token <input type="text" id="token" value="{escaped_token}" readonly style="width:100%; max-width:40em;"></label> <button type="button" id="copy">Copy</button></p>
+<p><strong>MCP server URL:</strong> <code>{mcp_base_url}/mcp</code></p>
+<p><strong>Usage:</strong> In your client, set the header <code>Authorization: Bearer &lt;token&gt;</code> or <code>X-Skyfi-Session-Token: &lt;token&gt;</code> when adding this MCP server. Token expires in {expires_in // 86400} days.</p>
+<p><a href="/connect">Get another token</a></p>
+<script>
+document.getElementById("copy").onclick = function() {{
+  var el = document.getElementById("token");
+  el.select();
+  el.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(el.value).then(function() {{ this.textContent = "Copied!"; }}.bind(this));
+}};
+</script>
+</body>
+</html>"""
+
+
+def _connect_error_html(message: str) -> str:
+    """HTML shown on form validation or server error."""
+    escaped = (
+        message.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    )
+    return f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Error — Connect SkyFi</title></head>
+<body>
+<h1>Error</h1>
+<p>{escaped}</p>
+<p><a href="/connect">Try again</a></p>
+</body>
+</html>"""
+
+
 @mcp.custom_route("/connect", methods=["GET"])
 async def connect_get(_request: Request) -> Response:
     """Serve a simple form to connect SkyFi and get a session token (web flow)."""
     return HTMLResponse(_CONNECT_HTML)
+
+
+def _request_base_url_for_connect(request: Request) -> str:
+    """Base URL of this server (scheme + host) for success page. Honors X-Forwarded-*."""
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host = (
+        request.headers.get("x-forwarded-host")
+        or request.headers.get("host")
+        or request.url.netloc
+    )
+    return f"{proto}://{host}".rstrip("/") if host else ""
 
 
 @mcp.custom_route("/connect", methods=["POST"])
@@ -189,10 +243,11 @@ async def connect_post(request: Request) -> Response:
     """
     Create a session from API key (and optional URLs). Returns session_token for use as
     Authorization: Bearer <token> or X-Skyfi-Session-Token. CLI mode is unchanged (header/env).
+    Form POST gets HTML success/error page; application/json gets JSON.
     """
+    is_json = "application/json" in (request.headers.get("content-type") or "")
     try:
-        content_type = request.headers.get("content-type", "") or ""
-        if "application/json" in content_type:
+        if is_json:
             body = await request.json()
             api_key = (body.get("api_key") or "").strip()
             base_url = (body.get("api_base_url") or "").strip() or None
@@ -205,31 +260,46 @@ async def connect_post(request: Request) -> Response:
             webhook_url = (form.get("webhook_base_url") or form.get("webhook_url") or "").strip() or None
             notification_url = (form.get("notification_url") or "").strip() or None
         if not api_key:
-            return JSONResponse(
-                {"ok": False, "error": "api_key is required"},
-                status_code=400,
-            )
+            if is_json:
+                return JSONResponse(
+                    {"ok": False, "error": "api_key is required"},
+                    status_code=400,
+                )
+            return HTMLResponse(_connect_error_html("api_key is required."), status_code=400)
         token, expires_in = create_session(
             api_key,
             base_url=base_url,
             webhook_url=webhook_url,
             notification_url=notification_url,
         )
-        return JSONResponse(
-            {
-                "ok": True,
-                "session_token": token,
-                "expires_in_seconds": expires_in,
-                "usage": "Send as Authorization: Bearer <session_token> or X-Skyfi-Session-Token header when calling the MCP server.",
-            },
+        if is_json:
+            return JSONResponse(
+                {
+                    "ok": True,
+                    "session_token": token,
+                    "expires_in_seconds": expires_in,
+                    "usage": "Send as Authorization: Bearer <session_token> or X-Skyfi-Session-Token header when calling the MCP server.",
+                },
+                status_code=201,
+            )
+        mcp_base = _request_base_url_for_connect(request)
+        return HTMLResponse(
+            _connect_success_html(token, expires_in, mcp_base or "https://www.keenermcp.com"),
             status_code=201,
         )
     except ValueError as e:
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+        if is_json:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+        return HTMLResponse(_connect_error_html(str(e)), status_code=400)
     except Exception as e:
         logger.exception("Connect POST failed")
-        return JSONResponse(
-            {"ok": False, "error": "Server error"},
+        if is_json:
+            return JSONResponse(
+                {"ok": False, "error": "Server error"},
+                status_code=500,
+            )
+        return HTMLResponse(
+            _connect_error_html("Server error. Please try again."),
             status_code=500,
         )
 

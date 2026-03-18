@@ -269,7 +269,7 @@ def test_connect_post_requires_api_key() -> None:
 
 
 def test_connect_post_returns_session_token() -> None:
-    """POST /connect with api_key returns 201 and session_token (web flow)."""
+    """POST /connect with api_key (JSON) returns 201 and session_token (web flow)."""
     app = mcp.streamable_http_app()
     client = TestClient(app)
     response = client.post(
@@ -283,3 +283,21 @@ def test_connect_post_returns_session_token() -> None:
     assert len(data["session_token"]) > 20
     assert data.get("expires_in_seconds", 0) > 0
     assert "Bearer" in (data.get("usage") or "")
+
+
+def test_connect_post_form_returns_html_success_page() -> None:
+    """POST /connect as form returns HTML success page with token and Copy button."""
+    app = mcp.streamable_http_app()
+    client = TestClient(app)
+    response = client.post(
+        "/connect",
+        data={"api_key": "test-key-form-456"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 201
+    assert "text/html" in response.headers.get("content-type", "")
+    html = response.text
+    assert "Session token created" in html
+    assert "Copy" in html
+    assert "/mcp" in html
+    assert "test-key-form-456" not in html  # API key must not appear in response
